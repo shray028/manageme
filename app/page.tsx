@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import {
   ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronRight, CirclePlus,
   BookOpen, CircleAlert, Cloud, Command, Dumbbell, FolderKanban, ImagePlus, Inbox, KeyRound, Lightbulb, Link2,
@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { auth, db, googleProvider, storage } from '@/lib/firebase';
+import { auth, db, firebaseApp, googleProvider } from '@/lib/firebase';
 
 type Task = {
   id: number;
@@ -315,7 +315,7 @@ export default function Home() {
     try {
       setSyncState('saving');
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
-      const fileRef = ref(storage, `users/${user!.uid}/attachments/${Date.now()}-${safeName}`);
+      const fileRef = ref(getStorage(firebaseApp), `users/${user!.uid}/attachments/${Date.now()}-${safeName}`);
       await uploadBytes(fileRef, file, { contentType: file.type });
       const url = await getDownloadURL(fileRef);
       updateProject(projectId, (project) => ({ ...project, cards: (project.cards ?? []).map((card) => card.id === cardId ? { ...card, attachments: [...(card.attachments ?? []), { id: Date.now(), kind: 'image', name: file.name, url }] } : card) }));

@@ -24,6 +24,9 @@ type Task = {
   priority?: boolean;
 };
 type Provider = 'grok' | 'openai' | 'claude';
+type Feature = 'tasks' | 'habit' | 'projects' | 'planner';
+type Project = { id: number; title: string; progress: number };
+type WorkspaceProfile = { onboardingCompleted?: boolean; name?: string; focus?: string; features?: Feature[] };
 
 const defaults: Task[] = [
   { id: 1, title: 'DSA: dynamic programming set', time: '9:00 AM', duration: '90 min', tag: 'DSA prep', color: 'indigo', priority: true },
@@ -66,6 +69,14 @@ function TaskRow({ task, onToggle }: { task: Task; onToggle: (id: number) => voi
   );
 }
 
+function NavigationPanel({ activeNav, tasks, projects, onAddProject }: { activeNav: string; tasks: Task[]; projects: Project[]; onAddProject: (title: string) => void }) {
+  const [title, setTitle] = useState('');
+  if (activeNav === 'Inbox') return <div className="rounded-2xl border border-stone-200 bg-white p-6"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">Capture first</p><h2 className="mt-1 font-display text-2xl font-semibold">Inbox</h2><p className="mt-2 text-sm text-stone-500">Your captured tasks stay here until you decide where they belong.</p><div className="mt-6 space-y-2">{tasks.map((task) => <div key={task.id} className="rounded-xl bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700">{task.title}</div>)}</div></div>;
+  if (activeNav === 'Planner') return <div className="rounded-2xl border border-stone-200 bg-white p-6"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">Keep it realistic</p><h2 className="mt-1 font-display text-2xl font-semibold">Planner</h2><div className="mt-6 space-y-3">{tasks.map((task) => <div key={task.id} className="flex items-center gap-4 rounded-xl bg-stone-50 px-4 py-3"><span className="w-24 text-xs font-bold text-teal-700">{task.time}</span><span className="text-sm font-medium text-stone-700">{task.title}</span></div>)}</div></div>;
+  if (activeNav === 'Projects') return <div className="rounded-2xl border border-stone-200 bg-white p-6"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-indigo-600">Longer direction</p><h2 className="mt-1 font-display text-2xl font-semibold">Projects</h2><p className="mt-2 text-sm text-stone-500">Add a project only when something deserves more than a to-do.</p><form onSubmit={(event) => { event.preventDefault(); onAddProject(title); setTitle(''); }} className="mt-6 flex gap-2"><Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Name a project or goal" /><Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">Add project</Button></form><div className="mt-5 grid gap-3 sm:grid-cols-2">{projects.length ? projects.map((project) => <div key={project.id} className="rounded-xl border border-stone-200 p-4"><p className="font-semibold text-stone-800">{project.title}</p><Progress value={project.progress} className="mt-4 [&_[data-slot=progress-indicator]]:bg-indigo-500" /></div>) : <p className="text-sm text-stone-400">No projects yet.</p>}</div></div>;
+  return <div className="grid gap-4 sm:grid-cols-3"><div className="rounded-2xl border border-stone-200 bg-white p-5"><p className="text-[11px] text-stone-400">Tasks completed</p><p className="mt-2 font-display text-3xl font-semibold">{tasks.filter((task) => task.done).length}/{tasks.length}</p></div><div className="rounded-2xl border border-stone-200 bg-white p-5"><p className="text-[11px] text-stone-400">Projects</p><p className="mt-2 font-display text-3xl font-semibold">{projects.length}</p></div><div className="rounded-2xl border border-stone-200 bg-white p-5"><p className="text-[11px] text-stone-400">A gentle reminder</p><p className="mt-2 text-sm font-medium text-stone-700">Progress is a pattern, not a score.</p></div></div>;
+}
+
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>(defaults);
   const [activeNav, setActiveNav] = useState('Today');
@@ -85,6 +96,15 @@ export default function Home() {
   const [cloudReady, setCloudReady] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [profile, setProfile] = useState<WorkspaceProfile>({});
+  const [showSetup, setShowSetup] = useState(false);
+  const [setupName, setSetupName] = useState('');
+  const [setupFocus, setSetupFocus] = useState('Personal life');
+  const [setupFeatures, setSetupFeatures] = useState<Feature[]>(['tasks', 'habit']);
+  const [setupTask, setSetupTask] = useState('');
+  const [setupHabit, setSetupHabit] = useState('');
+  const [setupProject, setSetupProject] = useState('');
 
   useEffect(() => {
     const savedProvider = window.sessionStorage.getItem('memo-provider') as Provider | null;
@@ -110,6 +130,8 @@ export default function Home() {
       if (!nextUser) {
         setTasks(defaults);
         setHabitDone(false);
+        setProjects([]);
+        setProfile({});
         return;
       }
 
@@ -118,9 +140,16 @@ export default function Home() {
         const snapshot = await getDoc(workspace);
         if (!active) return;
         if (snapshot.exists()) {
-          const saved = snapshot.data() as { tasks?: Task[]; habitDone?: boolean };
+          const saved = snapshot.data() as { tasks?: Task[]; habitDone?: boolean; projects?: Project[]; profile?: WorkspaceProfile };
           if (Array.isArray(saved.tasks)) setTasks(saved.tasks);
           setHabitDone(Boolean(saved.habitDone));
+          if (Array.isArray(saved.projects)) setProjects(saved.projects);
+          const loadedProfile = saved.profile ?? {};
+          setProfile(loadedProfile);
+          setSetupName(loadedProfile.name || nextUser.displayName?.split(' ')[0] || '');
+          setSetupFocus(loadedProfile.focus || 'Personal life');
+          setSetupFeatures(loadedProfile.features?.length ? loadedProfile.features : ['tasks', 'habit']);
+          if (!loadedProfile.onboardingCompleted) setShowSetup(true);
         } else {
           // Bring any existing device-only data into the new account once.
           const legacyTasks = window.localStorage.getItem('manageme-tasks');
@@ -131,12 +160,15 @@ export default function Home() {
           await setDoc(workspace, {
             tasks: initialTasks,
             habitDone: legacyHabit,
+            projects: [],
             profile: { name: nextUser.displayName ?? '', email: nextUser.email ?? '' },
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
           window.localStorage.removeItem('manageme-tasks');
           window.localStorage.removeItem('manageme-habit');
+          setSetupName(nextUser.displayName?.split(' ')[0] || '');
+          setShowSetup(true);
         }
         if (active) setCloudReady(true);
       } catch (error) {
@@ -151,12 +183,13 @@ export default function Home() {
       setDoc(doc(db, 'users', user.uid), {
         tasks,
         habitDone,
-        profile: { name: user.displayName ?? '', email: user.email ?? '' },
+        projects,
+        profile,
         updatedAt: serverTimestamp(),
       }, { merge: true }).catch((error: unknown) => setAuthError(error instanceof Error ? error.message : 'Your changes could not be saved.'));
     }, 350);
     return () => window.clearTimeout(timeout);
-  }, [tasks, habitDone, user, cloudReady]);
+  }, [tasks, habitDone, projects, profile, user, cloudReady]);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -175,7 +208,7 @@ export default function Home() {
 
   const completed = tasks.filter((task) => task.done).length;
   const nextTask = tasks.find((task) => !task.done) ?? tasks[0];
-  const firstName = user?.displayName?.trim().split(/\s+/)[0] || user?.email?.split('@')[0] || 'there';
+  const firstName = profile.name || user?.displayName?.trim().split(/\s+/)[0] || user?.email?.split('@')[0] || 'there';
   const requireAccount = () => {
     if (user) return true;
     setAuthError('Sign in with Google to save your workspace and use it on every device.');
@@ -192,6 +225,19 @@ export default function Home() {
     setTasks((items) => [...items, { id: Date.now(), title, time: 'Unscheduled', duration: '30 min', tag: 'Inbox', color: 'stone' }]);
     setQuickAdd('');
     setShowCapture(false);
+  };
+  const addProject = (rawTitle: string) => {
+    const title = rawTitle.trim();
+    if (!title || !requireAccount()) return;
+    setProjects((items) => [...items, { id: Date.now(), title, progress: 0 }]);
+    if (!profile.features?.includes('projects')) setProfile((current) => ({ ...current, features: [...(current.features ?? []), 'projects'] }));
+  };
+  const finishSetup = () => {
+    const features = setupFeatures.length ? setupFeatures : ['tasks'];
+    setProfile({ onboardingCompleted: true, name: setupName.trim() || firstName, focus: setupFocus, features });
+    if (setupTask.trim() && !tasks.length) setTasks([{ id: Date.now(), title: setupTask.trim(), time: 'Unscheduled', duration: '30 min', tag: 'First step', color: 'teal' }]);
+    if (setupProject.trim() && !projects.length) setProjects([{ id: Date.now() + 1, title: setupProject.trim(), progress: 0 }]);
+    setShowSetup(false);
   };
   const switchProvider = (value: Provider) => {
     setProvider(value);
@@ -261,7 +307,7 @@ export default function Home() {
         </button>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowMemo(true)} className="hidden items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 sm:flex"><Sparkles className="size-3.5" /> Ask Memo</button>
-          <button onClick={() => setShowSettings(true)} className="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100" aria-label="Memo AI settings"><Settings2 className="size-4" /></button>
+          <button onClick={() => setShowSetup(true)} className="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100" aria-label="Workspace settings"><Settings2 className="size-4" /></button>
           {user ? <><span className="hidden max-w-28 truncate text-[11px] font-semibold text-stone-600 md:block">{user.displayName?.split(' ')[0] || user.email}</span><button onClick={signOutOfManageMe} className="grid size-8 place-items-center rounded-full bg-orange-100 text-xs font-bold text-orange-700" aria-label="Sign out of ManageMe"><LogOut className="size-3.5" /></button></> : <Button onClick={signIn} disabled={authLoading} size="sm" className="bg-teal-700 text-[11px] hover:bg-teal-800"><LogIn className="size-3.5" />{authLoading ? 'Opening Google…' : 'Sign in'}</Button>}
         </div>
       </header>
@@ -298,7 +344,7 @@ export default function Home() {
           {user && <p className="mb-5 flex items-center gap-1.5 text-[11px] font-semibold text-teal-700"><Cloud className="size-3.5" /> {cloudReady ? 'Saved securely to your Google account' : 'Loading your workspace…'}</p>}
           {authError && <div className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50 p-3 text-[11px] text-rose-700"><span>{authError}</span><button onClick={() => setAuthError('')} aria-label="Dismiss message"><X className="size-3.5" /></button></div>}
 
-          <div className="mb-5 rounded-2xl border border-teal-100 bg-[#eff8f6] p-4 sm:flex sm:items-center sm:justify-between">
+          {activeNav === 'Today' ? <><div className="mb-5 rounded-2xl border border-teal-100 bg-[#eff8f6] p-4 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-teal-700 text-white"><Target className="size-4" /></div>
               <div><p className="text-[12px] font-bold text-teal-950">Right now: protect the first 90 minutes.</p><p className="mt-0.5 text-[12px] text-teal-800/75">Your hardest work is scheduled before the 10:45 standup — a good match for your energy pattern.</p></div>
@@ -328,11 +374,11 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(25,30,25,0.03)] sm:p-5">
+          {(!profile.onboardingCompleted || profile.features?.includes('projects')) && <div className="mt-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(25,30,25,0.03)] sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-indigo-600">3-month direction</p><h2 className="mt-1 font-display text-lg font-semibold tracking-[-0.035em]">Become interview-ready in DSA</h2></div><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-bold text-indigo-700">8 weeks left</span></div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">{[['Foundation', 74], ['Patterns', 32], ['Mock interviews', 0]].map(([label, amount]) => <div key={label as string}><div className="mb-1.5 flex justify-between text-[10px] text-stone-500"><span>{label}</span><span>{amount}%</span></div><Progress value={amount as number} className="[&_[data-slot=progress-indicator]]:bg-indigo-500" /></div>)}</div>
             <p className="mt-4 text-[11px] text-stone-500"><span className="font-semibold text-stone-700">This week:</span> 3 of 5 focused sessions are protected in your calendar.</p>
-          </div>
+          </div>}</> : <NavigationPanel activeNav={activeNav} tasks={tasks} projects={projects} onAddProject={addProject} />}
         </section>
 
         <aside className="border-l border-stone-200/80 bg-[#f9f8f5] px-5 py-7 lg:px-6">
@@ -346,6 +392,7 @@ export default function Home() {
         </aside>
       </div>
 
+      {showSetup && <div className="fixed inset-0 z-[70] overflow-y-auto bg-stone-950/35 p-4 backdrop-blur-sm"><div className="mx-auto my-5 w-full max-w-2xl rounded-3xl border border-stone-200 bg-[#fbfaf7] p-6 shadow-2xl sm:my-10 sm:p-8"><div className="flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">Your calm starting point</p><h2 className="mt-1 font-display text-2xl font-semibold tracking-[-0.04em]">Set up the space you need now.</h2><p className="mt-2 text-sm leading-relaxed text-stone-500">Answer a few quick questions. Every other feature stays in Settings until you want it.</p></div>{profile.onboardingCompleted && <button onClick={() => setShowSetup(false)} aria-label="Close workspace setup"><X className="size-4 text-stone-400" /></button>}</div><div className="mt-6 grid gap-4 sm:grid-cols-2"><label className="text-[11px] font-bold text-stone-600">What should we call you?<Input autoFocus value={setupName} onChange={(event) => setSetupName(event.target.value)} placeholder="Your first name" className="mt-1.5 bg-white" /></label><label className="text-[11px] font-bold text-stone-600">What are you using ManageMe for?<select value={setupFocus} onChange={(event) => { const focus = event.target.value; setSetupFocus(focus); setSetupFeatures(focus === 'Work' ? ['tasks', 'projects', 'planner'] : focus === 'Study' ? ['tasks', 'habit', 'projects'] : ['tasks', 'habit']); }} className="mt-1.5 h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-normal outline-none focus:border-teal-400"><option>Personal life</option><option>Work</option><option>Study</option></select></label></div><div className="mt-6"><p className="text-[11px] font-bold text-stone-600">What should appear first?</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{(['tasks', 'habit', 'projects', 'planner'] as Feature[]).map((feature) => { const labels: Record<Feature, [string, string]> = { tasks: ['Today’s tasks', 'A short useful list'], habit: ['Habit rhythm', 'One small commitment'], projects: ['Projects', 'Longer goals without clutter'], planner: ['Simple planner', 'Give tasks a place in time'] }; const selected = setupFeatures.includes(feature); return <button key={feature} onClick={() => setSetupFeatures((items) => selected ? items.filter((item) => item !== feature) : [...items, feature])} className={`flex items-center gap-3 rounded-xl border p-3 text-left ${selected ? 'border-teal-400 bg-teal-50' : 'border-stone-200 bg-white'}`}><span className={`grid size-5 place-items-center rounded-full border ${selected ? 'border-teal-600 bg-teal-600 text-white' : 'border-stone-300 text-transparent'}`}><Check className="size-3" /></span><span><span className="block text-xs font-bold text-stone-800">{labels[feature][0]}</span><span className="block text-[10px] text-stone-500">{labels[feature][1]}</span></span></button>; })}</div></div><div className="mt-6"><p className="text-[11px] font-bold text-stone-600">Optional: give yourself one helpful starting point</p><div className="mt-2 grid gap-2 sm:grid-cols-3"><Input value={setupTask} onChange={(event) => setSetupTask(event.target.value)} placeholder="First task" /><Input value={setupHabit} onChange={(event) => setSetupHabit(event.target.value)} placeholder="Small habit" /><Input value={setupProject} onChange={(event) => setSetupProject(event.target.value)} placeholder="First project" /></div></div><div className="mt-7 flex justify-end"><Button onClick={finishSetup} className="bg-teal-700 hover:bg-teal-800">Create my layout <ArrowUpRight className="size-3.5" /></Button></div></div></div>}
       {showCapture && <div className="fixed inset-0 z-50 grid place-items-start bg-stone-900/15 px-4 pt-[12vh] backdrop-blur-sm"><div className="w-full max-w-xl rounded-2xl border border-stone-200 bg-white p-3 shadow-2xl"><div className="flex items-center gap-3 border-b border-stone-100 px-2 pb-3"><Command className="size-4 text-teal-700" /><Input autoFocus value={quickAdd} onChange={(event) => setQuickAdd(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addTask(quickAdd)} placeholder="What do you want to remember?" className="h-9 border-0 px-0 text-base shadow-none focus-visible:ring-0" /><button onClick={() => setShowCapture(false)} aria-label="Close capture"><X className="size-4 text-stone-400" /></button></div><div className="flex items-center justify-between px-2 pt-3"><p className="text-[11px] text-stone-400">Capture first. Organize later.</p><Button onClick={() => addTask(quickAdd)} size="sm" className="bg-teal-700 hover:bg-teal-800">Add to inbox</Button></div></div></div>}
 
       {showMemo && <div className="fixed inset-0 z-50 grid place-items-center bg-stone-900/20 px-4 backdrop-blur-sm"><div className="w-full max-w-lg rounded-2xl border border-violet-100 bg-white p-5 shadow-2xl"><div className="flex items-start justify-between"><div className="flex gap-3"><div className="grid size-9 place-items-center rounded-xl bg-violet-600 text-white"><Sparkles className="size-4" /></div><div><h2 className="font-display text-lg font-semibold tracking-[-0.04em]">Memo · your planning assistant</h2><p className="text-[11px] text-stone-400">Uses your own {provider === 'grok' ? 'Grok' : provider === 'openai' ? 'OpenAI' : 'Claude'} key for this session.</p></div></div><button onClick={() => setShowMemo(false)} aria-label="Close Memo"><X className="size-4 text-stone-400" /></button></div>{!apiKey ? <div className="mt-5 rounded-xl bg-violet-50 p-4"><p className="text-[13px] font-semibold text-violet-950">Connect Memo first.</p><p className="mt-1 text-[12px] leading-relaxed text-violet-800/80">Your key stays only in this browser session and is used to answer your request.</p><Button onClick={() => setShowSettings(true)} size="sm" className="mt-3 bg-violet-600 hover:bg-violet-700"><KeyRound className="size-3.5" /> Connect a provider</Button></div> : <><div className="mt-5 flex gap-2"><button onClick={() => askMemo('Plan tomorrow for me.')} className="rounded-xl border border-violet-100 bg-violet-50 p-2.5 text-left text-[11px] font-semibold text-violet-800 hover:bg-violet-100">Plan tomorrow</button><button onClick={() => askMemo('What can I safely postpone?')} className="rounded-xl border border-violet-100 bg-violet-50 p-2.5 text-left text-[11px] font-semibold text-violet-800 hover:bg-violet-100">What can I postpone?</button></div><textarea value={memoPrompt} onChange={(event) => setMemoPrompt(event.target.value)} placeholder="Ask Memo about your plan..." className="mt-4 min-h-24 w-full resize-none rounded-xl border border-stone-200 p-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100" /><div className="mt-3 flex justify-end"><Button onClick={() => askMemo()} disabled={memoLoading || !memoPrompt.trim()} size="sm" className="bg-violet-600 hover:bg-violet-700">{memoLoading ? 'Thinking…' : <><Send className="size-3.5" /> Ask Memo</>}</Button></div>{memoError && <p className="mt-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">{memoError}</p>}{memoAnswer && <div className="mt-4 rounded-xl bg-[#f8f7ff] p-4"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-violet-600">Memo&apos;s proposal</p><p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-violet-950">{memoAnswer}</p></div>}</>}</div></div>}

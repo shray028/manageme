@@ -1,14 +1,17 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import {
   ArrowUpRight, BrainCircuit, CalendarDays, Check, ChevronRight, CirclePlus,
-  Command, FolderKanban, Inbox, KeyRound, Lightbulb, Menu, MoreHorizontal,
+  Cloud, Command, FolderKanban, Inbox, KeyRound, Lightbulb, LogIn, LogOut, Menu, MoreHorizontal,
   Plus, Search, Send, Settings2, Sparkles, Target, TimerReset, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { auth, db, googleProvider } from '@/lib/firebase';
 
 type Task = {
   id: number;
@@ -78,27 +81,82 @@ export default function Home() {
   const [memoAnswer, setMemoAnswer] = useState('');
   const [memoError, setMemoError] = useState('');
   const [memoLoading, setMemoLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [cloudReady, setCloudReady] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
-    const savedTasks = window.localStorage.getItem('manageme-tasks');
-    const savedHabit = window.localStorage.getItem('manageme-habit');
     const savedProvider = window.sessionStorage.getItem('memo-provider') as Provider | null;
     const savedModel = window.sessionStorage.getItem('memo-model');
     const savedKey = window.sessionStorage.getItem('memo-api-key');
-    if (savedTasks) setTasks(JSON.parse(savedTasks));
-    if (savedHabit === 'true') setHabitDone(true);
     if (savedProvider) setProvider(savedProvider);
     if (savedModel) setModel(savedModel);
     if (savedKey) setApiKey(savedKey);
   }, []);
 
-  useEffect(() => { window.localStorage.setItem('manageme-tasks', JSON.stringify(tasks)); }, [tasks]);
-  useEffect(() => { window.localStorage.setItem('manageme-habit', String(habitDone)); }, [habitDone]);
   useEffect(() => {
     window.sessionStorage.setItem('memo-provider', provider);
     window.sessionStorage.setItem('memo-model', model);
     window.sessionStorage.setItem('memo-api-key', apiKey);
   }, [provider, model, apiKey]);
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+      if (!active) return;
+      setUser(nextUser);
+      setCloudReady(false);
+      setAuthError('');
+      if (!nextUser) {
+        setTasks(defaults);
+        setHabitDone(false);
+        return;
+      }
+
+      try {
+        const workspace = doc(db, 'users', nextUser.uid);
+        const snapshot = await getDoc(workspace);
+        if (!active) return;
+        if (snapshot.exists()) {
+          const saved = snapshot.data() as { tasks?: Task[]; habitDone?: boolean };
+          if (Array.isArray(saved.tasks)) setTasks(saved.tasks);
+          setHabitDone(Boolean(saved.habitDone));
+        } else {
+          // Bring any existing device-only data into the new account once.
+          const legacyTasks = window.localStorage.getItem('manageme-tasks');
+          const legacyHabit = window.localStorage.getItem('manageme-habit') === 'true';
+          const initialTasks = legacyTasks ? JSON.parse(legacyTasks) as Task[] : defaults;
+          setTasks(initialTasks);
+          setHabitDone(legacyHabit);
+          await setDoc(workspace, {
+            tasks: initialTasks,
+            habitDone: legacyHabit,
+            profile: { name: nextUser.displayName ?? '', email: nextUser.email ?? '' },
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          window.localStorage.removeItem('manageme-tasks');
+          window.localStorage.removeItem('manageme-habit');
+        }
+        if (active) setCloudReady(true);
+      } catch (error) {
+        if (active) setAuthError(error instanceof Error ? error.message : 'Your workspace could not be loaded.');
+      }
+    });
+    return () => { active = false; unsubscribe(); };
+  }, []);
+  useEffect(() => {
+    if (!user || !cloudReady) return;
+    const timeout = window.setTimeout(() => {
+      setDoc(doc(db, 'users', user.uid), {
+        tasks,
+        habitDone,
+        profile: { name: user.displayName ?? '', email: user.email ?? '' },
+        updatedAt: serverTimestamp(),
+      }, { merge: true }).catch((error: unknown) => setAuthError(error instanceof Error ? error.message : 'Your changes could not be saved.'));
+    }, 350);
+    return () => window.clearTimeout(timeout);
+  }, [tasks, habitDone, user, cloudReady]);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -117,10 +175,19 @@ export default function Home() {
 
   const completed = tasks.filter((task) => task.done).length;
   const nextTask = tasks.find((task) => !task.done) ?? tasks[0];
-  const toggleTask = (id: number) => setTasks((items) => items.map((task) => task.id === id ? { ...task, done: !task.done } : task));
+  const requireAccount = () => {
+    if (user) return true;
+    setAuthError('Sign in with Google to save your workspace and use it on every device.');
+    return false;
+  };
+  const toggleTask = (id: number) => {
+    if (!requireAccount()) return;
+    setTasks((items) => items.map((task) => task.id === id ? { ...task, done: !task.done } : task));
+  };
   const addTask = (rawTitle: string) => {
     const title = rawTitle.trim();
     if (!title) return;
+    if (!requireAccount()) return;
     setTasks((items) => [...items, { id: Date.now(), title, time: 'Unscheduled', duration: '30 min', tag: 'Inbox', color: 'stone' }]);
     setQuickAdd('');
     setShowCapture(false);
@@ -164,6 +231,21 @@ export default function Home() {
     event.preventDefault();
     addTask(quickAdd);
   };
+  const signIn = async () => {
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Google sign-in did not complete.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+  const signOutOfManageMe = async () => {
+    await signOut(auth);
+    setShowMemo(false);
+  };
 
   return (
     <main className="min-h-screen bg-[#f6f5f1] text-stone-900">
@@ -179,7 +261,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <button onClick={() => setShowMemo(true)} className="hidden items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 sm:flex"><Sparkles className="size-3.5" /> Ask Memo</button>
           <button onClick={() => setShowSettings(true)} className="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100" aria-label="Memo AI settings"><Settings2 className="size-4" /></button>
-          <button className="grid size-8 place-items-center rounded-full bg-orange-100 text-xs font-bold text-orange-700" aria-label="Account profile">SV</button>
+          {user ? <><span className="hidden max-w-28 truncate text-[11px] font-semibold text-stone-600 md:block">{user.displayName?.split(' ')[0] || user.email}</span><button onClick={signOutOfManageMe} className="grid size-8 place-items-center rounded-full bg-orange-100 text-xs font-bold text-orange-700" aria-label="Sign out of ManageMe"><LogOut className="size-3.5" /></button></> : <Button onClick={signIn} disabled={authLoading} size="sm" className="bg-teal-700 text-[11px] hover:bg-teal-800"><LogIn className="size-3.5" />{authLoading ? 'Opening Google…' : 'Sign in'}</Button>}
         </div>
       </header>
 
@@ -211,6 +293,10 @@ export default function Home() {
             <button onClick={() => setShowMemo(true)} className="flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 shadow-sm hover:bg-violet-100"><Sparkles className="size-3.5" /> Ask Memo</button>
           </div>
 
+          {!user && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3"><div><p className="text-[12px] font-bold text-orange-950">Make your workspace yours.</p><p className="mt-0.5 text-[11px] text-orange-800/80">Sign in with Google to save tasks, habits, and plans securely across devices.</p></div><Button onClick={signIn} disabled={authLoading} size="sm" className="bg-teal-700 hover:bg-teal-800"><LogIn className="size-3.5" /> Sign in with Google</Button></div>}
+          {user && <p className="mb-5 flex items-center gap-1.5 text-[11px] font-semibold text-teal-700"><Cloud className="size-3.5" /> {cloudReady ? 'Saved securely to your Google account' : 'Loading your workspace…'}</p>}
+          {authError && <div className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50 p-3 text-[11px] text-rose-700"><span>{authError}</span><button onClick={() => setAuthError('')} aria-label="Dismiss message"><X className="size-3.5" /></button></div>}
+
           <div className="mb-5 rounded-2xl border border-teal-100 bg-[#eff8f6] p-4 sm:flex sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-teal-700 text-white"><Target className="size-4" /></div>
@@ -233,7 +319,7 @@ export default function Home() {
                 <div className="mt-3 flex items-center justify-between text-[11px]"><span className="text-stone-500">Free focus time</span><span className="font-bold text-stone-800">45 min buffer</span></div>
               </div>
               <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(25,30,25,0.03)]">
-                <div className="flex items-center justify-between"><div><h2 className="font-display text-base font-semibold tracking-[-0.03em]">Micro commitment</h2><p className="mt-0.5 text-[10px] text-stone-400">Small enough to repeat.</p></div><button onClick={() => setHabitDone(!habitDone)} className={`grid size-7 place-items-center rounded-full ${habitDone ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-400 hover:bg-teal-50 hover:text-teal-700'}`} aria-label="Toggle micro commitment"><Check className="size-3.5" /></button></div>
+                <div className="flex items-center justify-between"><div><h2 className="font-display text-base font-semibold tracking-[-0.03em]">Micro commitment</h2><p className="mt-0.5 text-[10px] text-stone-400">Small enough to repeat.</p></div><button onClick={() => { if (requireAccount()) setHabitDone(!habitDone); }} className={`grid size-7 place-items-center rounded-full ${habitDone ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-400 hover:bg-teal-50 hover:text-teal-700'}`} aria-label="Toggle micro commitment"><Check className="size-3.5" /></button></div>
                 <p className={`mt-4 text-[12px] font-semibold ${habitDone ? 'text-teal-700 line-through' : 'text-stone-700'}`}>No phone until I&apos;m ready for office</p>
                 <div className="mt-4 flex items-center justify-between">{['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => <div key={`${day}-${index}`}><div className={`grid size-5 place-items-center rounded-full text-[9px] font-bold ${index < 2 || (index === 2 && habitDone) ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-400'}`}>{index < 2 || (index === 2 && habitDone) ? <Check className="size-3" /> : day}</div></div>)}</div>
                 <p className="mt-3 text-[10px] text-stone-400">2-day rhythm · consistency, not streak pressure</p>

@@ -175,6 +175,7 @@ export default function Home() {
 
   const completed = tasks.filter((task) => task.done).length;
   const nextTask = tasks.find((task) => !task.done) ?? tasks[0];
+  const firstName = user?.displayName?.trim().split(/\s+/)[0] || user?.email?.split('@')[0] || 'there';
   const requireAccount = () => {
     if (user) return true;
     setAuthError('Sign in with Google to save your workspace and use it on every device.');
@@ -287,7 +288,7 @@ export default function Home() {
           <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-teal-700">Wednesday · September 3</p>
-              <h1 className="font-display text-3xl font-semibold tracking-[-0.055em] text-stone-900 sm:text-[34px]">Good morning, Shray.</h1>
+              <h1 className="font-display text-3xl font-semibold tracking-[-0.055em] text-stone-900 sm:text-[34px]">Good morning, {firstName}.</h1>
               <p className="mt-1 text-[13px] text-stone-500">A realistic day: <span className="font-semibold text-stone-700">3 priorities</span>, 3h 35m of focused work, 45m protected buffer.</p>
             </div>
             <button onClick={() => setShowMemo(true)} className="flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 shadow-sm hover:bg-violet-100"><Sparkles className="size-3.5" /> Ask Memo</button>

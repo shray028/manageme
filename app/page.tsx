@@ -1065,8 +1065,11 @@ export default function Home() {
             <p className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-bold tracking-wide text-teal-800">
               YOUR CALMER WAY FORWARD
             </p>
-            <h1 className="mt-6 max-w-2xl font-display text-5xl font-semibold leading-[.95] tracking-[-0.06em] sm:text-6xl">
-              The missing link between today and your next goal. 😉
+            <h1 className="mt-5 max-w-xl font-display text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.045em] sm:text-5xl lg:text-[3.5rem]">
+              The missing link between today and your next goal.{' '}
+              <span className="inline-block text-[0.78em] align-[0.05em]">
+                😉
+              </span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-stone-600">
               A personal space for small habits, realistic plans, focused work,
@@ -1096,9 +1099,11 @@ export default function Home() {
                 A little less noise. A lot more momentum.
               </p>
               <img
-                src="/panda/sleeping-clean.png"
-                alt="Sleeping ManageMe Panda"
-                className="mx-auto mt-2 w-full max-w-sm drop-shadow-xl"
+                src="/panda/awake-small.png"
+                alt="Awake ManageMe Panda waving hello"
+                width={404}
+                height={420}
+                className="mx-auto mt-3 h-52 w-auto max-w-full object-contain drop-shadow-xl sm:h-56 lg:h-60"
               />
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-bold text-stone-600">

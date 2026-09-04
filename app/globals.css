@@ -17,15 +17,369 @@
   --radius: 0.7rem;
 }
 
-:root { --background: #f6f5f1; --foreground: #292724; --primary: #0f766e; --primary-foreground: #ffffff; --muted: #f2f1ed; --muted-foreground: #78716c; --border: #e7e5e4; --input: #e7e5e4; --ring: #5eead4; --font-geist-sans: Arial, Helvetica, sans-serif; }
-* { border-color: var(--border); }
-html { background: var(--background); }
-body { min-height: 100vh; background: var(--background); color: var(--foreground); font-family: var(--font-geist-sans); }
-button { cursor: pointer; }
-.font-display { font-family: Georgia, 'Times New Roman', serif; }
-.tag-indigo { background: #eef2ff; color: #4f46e5; }
-.tag-orange { background: #fff7ed; color: #c2410c; }
-.tag-rose { background: #fff1f2; color: #e11d48; }
-.tag-emerald { background: #ecfdf5; color: #047857; }
-.tag-stone { background: #f5f5f4; color: #57534e; }
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+:root {
+  --background: #f6f5f1;
+  --foreground: #292724;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --muted: #f2f1ed;
+  --muted-foreground: #78716c;
+  --border: #e7e5e4;
+  --input: #e7e5e4;
+  --ring: #5eead4;
+  --font-geist-sans: Arial, Helvetica, sans-serif;
+}
+* {
+  border-color: var(--border);
+}
+html {
+  background: var(--background);
+}
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans);
+}
+button {
+  cursor: pointer;
+}
+.font-display {
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.tag-indigo {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.tag-orange {
+  background: #fff7ed;
+  color: #c2410c;
+}
+.tag-rose {
+  background: #fff1f2;
+  color: #e11d48;
+}
+.tag-emerald {
+  background: #ecfdf5;
+  color: #047857;
+}
+.tag-stone {
+  background: #f5f5f4;
+  color: #57534e;
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.panda-companion {
+  right: calc(0.75rem + env(safe-area-inset-right));
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  isolation: isolate;
+}
+.panda-trigger {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  height: 100%;
+  width: 100%;
+  place-items: end center;
+  border: 0;
+  background: transparent;
+  filter: drop-shadow(0 12px 14px rgb(30 29 47 / 0.22));
+  transform-origin: 60% 100%;
+  transition:
+    filter 180ms ease,
+    transform 180ms ease;
+}
+.panda-trigger:hover {
+  filter: drop-shadow(0 16px 18px rgb(30 29 47 / 0.28));
+}
+.panda-trigger:focus-visible {
+  border-radius: 1.5rem;
+  outline: 3px solid rgb(124 58 237 / 0.35);
+  outline-offset: 3px;
+}
+.panda-glow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: -1;
+  height: 58%;
+  width: 78%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgb(245 243 255 / 0.95),
+    rgb(237 233 254 / 0.18) 66%,
+    transparent 72%
+  );
+}
+.panda-character {
+  max-height: 100%;
+  width: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  animation: panda-frame-pop 190ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  user-select: none;
+}
+.panda-phase-sleeping .panda-character {
+  animation: panda-breathe 3.4s ease-in-out infinite;
+}
+.panda-phase-stirring {
+  animation: panda-stir 190ms ease-in-out both;
+}
+.panda-phase-rising {
+  animation: panda-rise 260ms cubic-bezier(0.18, 0.85, 0.35, 1.18) both;
+}
+.panda-phase-awake .panda-character {
+  animation: panda-ready 3s ease-in-out infinite;
+}
+.panda-phase-thinking .panda-character {
+  animation: panda-think 1.15s ease-in-out infinite;
+}
+
+.panda-dream {
+  position: absolute;
+  right: 3px;
+  top: -10px;
+  z-index: 3;
+  height: 62px;
+  width: 70px;
+  pointer-events: none;
+}
+.panda-dream span {
+  position: absolute;
+  color: #7c3aed;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0;
+  text-shadow: 0 2px 10px rgb(124 58 237 / 0.18);
+  animation: panda-dream-drift 2.7s ease-out infinite;
+}
+.panda-dream span:nth-child(1) {
+  bottom: 4px;
+  left: 2px;
+  font-size: 0.75rem;
+  animation-delay: 0s;
+}
+.panda-dream span:nth-child(2) {
+  bottom: 16px;
+  left: 22px;
+  font-size: 0.95rem;
+  animation-delay: 0.8s;
+}
+.panda-dream span:nth-child(3) {
+  bottom: 31px;
+  left: 43px;
+  font-size: 1.2rem;
+  animation-delay: 1.6s;
+}
+
+.panda-question {
+  position: absolute;
+  right: 10px;
+  top: -12px;
+  z-index: 4;
+  display: grid;
+  height: 38px;
+  width: 38px;
+  place-items: center;
+  border: 2px solid rgb(221 214 254);
+  border-radius: 999px;
+  background: white;
+  color: #7c3aed;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgb(30 29 47 / 0.15);
+  animation: panda-question-bob 1s ease-in-out infinite;
+}
+.panda-question::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: -9px;
+  height: 10px;
+  width: 10px;
+  border-radius: 999px;
+  background: white;
+  box-shadow: 8px 8px 0 -2px white;
+}
+
+.panda-chat {
+  position: absolute;
+  top: auto;
+  left: auto;
+  right: 0;
+  bottom: 126px;
+  width: min(24rem, calc(100vw - 1.5rem));
+  max-height: calc(100svh - 9.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgb(237 233 254);
+  border-radius: 1.75rem;
+  background: rgb(255 255 255 / 0.98);
+  margin: 0;
+  padding: 1rem;
+  color: #292524;
+  box-shadow: 0 24px 70px rgb(30 29 47 / 0.24);
+  opacity: 0;
+  transform: translate(18px, 28px) scale(0.68);
+  transform-origin: calc(100% - 52px) 100%;
+  transition:
+    opacity 240ms ease,
+    transform 420ms cubic-bezier(0.16, 0.9, 0.3, 1.12);
+  pointer-events: none;
+}
+.panda-chat--visible {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+  pointer-events: auto;
+}
+.panda-thought-tail {
+  position: absolute;
+  right: 52px;
+  bottom: -35px;
+  height: 38px;
+  width: 48px;
+  pointer-events: none;
+}
+.panda-thought-tail span {
+  position: absolute;
+  border: 1px solid rgb(237 233 254);
+  border-radius: 999px;
+  background: white;
+  box-shadow: 0 8px 18px rgb(30 29 47 / 0.1);
+}
+.panda-thought-tail span:nth-child(1) {
+  right: 3px;
+  top: -2px;
+  height: 18px;
+  width: 22px;
+}
+.panda-thought-tail span:nth-child(2) {
+  right: -4px;
+  top: 17px;
+  height: 12px;
+  width: 14px;
+}
+.panda-thought-tail span:nth-child(3) {
+  right: -8px;
+  top: 32px;
+  height: 7px;
+  width: 8px;
+}
+
+@keyframes panda-breathe {
+  0%,
+  100% {
+    transform: translateY(1px) scale(1);
+  }
+  50% {
+    transform: translateY(3px) scale(1.018, 0.985);
+  }
+}
+@keyframes panda-frame-pop {
+  from {
+    opacity: 0.65;
+    transform: translateY(5px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes panda-stir {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  32% {
+    transform: rotate(-4deg);
+  }
+  68% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes panda-rise {
+  from {
+    transform: translateY(10px) scale(0.92);
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes panda-ready {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-3px) rotate(1deg);
+  }
+}
+@keyframes panda-think {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+}
+@keyframes panda-dream-drift {
+  0% {
+    opacity: 0;
+    transform: translate(-4px, 8px) scale(0.75) rotate(-8deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  74% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(8px, -21px) scale(1.15) rotate(5deg);
+  }
+}
+@keyframes panda-question-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(3deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .panda-chat {
+    bottom: 112px;
+    max-height: calc(100svh - 8.5rem);
+  }
+}
+@media (min-width: 640px) {
+  .panda-companion {
+    right: calc(1.25rem + env(safe-area-inset-right));
+    bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panda-character,
+  .panda-trigger,
+  .panda-dream span,
+  .panda-question,
+  .panda-chat {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

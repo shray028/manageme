@@ -1137,7 +1137,7 @@ export default function Home() {
       tasks.length > 0 ||
       habitDone ||
       projects.some((project) => project.id !== roadmapProject.id) ||
-      (roadmapProject.cards ?? []).some((card) => card.id < 1 || card.id > 60);
+      (roadmapProject.cards ?? []).some((card) => card.id < 1 || card.id > 60 || !Array.isArray(card.checks));
     return (
       <RoadmapView
         name={firstName}
@@ -1181,7 +1181,7 @@ export default function Home() {
               .map((project) => ({
                 ...project,
                 cards: (project.cards ?? []).filter(
-                  (card) => card.id >= 1 && card.id <= 60,
+                  (card) => card.id >= 1 && card.id <= 60 && Array.isArray(card.checks),
                 ),
               })),
           );

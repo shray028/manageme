@@ -47,6 +47,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { PandaCompanion } from '@/components/panda-companion';
 import { auth, db, firebaseApp, googleProvider } from '@/lib/firebase';
+import { RoadmapView } from './roadmap-view';
 
 type Task = {
   id: number;
@@ -72,6 +73,7 @@ type BoardCard = {
   title: string;
   status: BoardStatus;
   attachments?: Attachment[];
+  checks?: boolean[];
 };
 type Project = {
   id: number;
@@ -1127,7 +1129,68 @@ export default function Home() {
       </main>
     );
 
-  return (
+    const roadmapProject = projects.find((project) =>
+    project.title.toLowerCase().includes('60-day roadmap'),
+  );
+  if (roadmapProject) {
+    const hasOldData =
+      tasks.length > 0 ||
+      habitDone ||
+      projects.some((project) => project.id !== roadmapProject.id) ||
+      (roadmapProject.cards ?? []).some((card) => card.id < 1 || card.id > 60 || !Array.isArray(card.checks));
+    return (
+      <RoadmapView
+        name={firstName}
+        project={roadmapProject}
+        syncState={syncState}
+        syncError={syncError}
+        hasOldData={hasOldData}
+        onRetrySync={retrySync}
+        onSignOut={signOutOfManageMe}
+        onCheck={(day, index, checked, totalChecks) => {
+          updateProject(roadmapProject.id, (project) => {
+            const cards = project.cards ?? [];
+            const previous = cards.find((card) => card.id === day);
+            const checks = [...(previous?.checks ?? Array(totalChecks).fill(false))];
+            checks[index] = checked;
+            const status: BoardStatus = checks.every(Boolean)
+              ? 'Done'
+              : checks.some(Boolean)
+                ? 'Doing'
+                : 'Backlog';
+            const updated: BoardCard = {
+              id: day,
+              title: `Day ${day}`,
+              status,
+              checks,
+            };
+            return {
+              ...project,
+              cards: previous
+                ? cards.map((card) => (card.id === day ? updated : card))
+                : [...cards, updated],
+            };
+          });
+        }}
+        onClearOldData={() => {
+          setTasks([]);
+          setHabitDone(false);
+          setProjects((items) =>
+            items
+              .filter((project) => project.id === roadmapProject.id)
+              .map((project) => ({
+                ...project,
+                cards: (project.cards ?? []).filter(
+                  (card) => card.id >= 1 && card.id <= 60 && Array.isArray(card.checks),
+                ),
+              })),
+          );
+        }}
+      />
+    );
+  }
+
+return (
     <main className="min-h-screen bg-[#f6f5f1] text-stone-900">
       <header className="sticky top-0 z-20 flex h-[65px] items-center justify-between border-b border-stone-200/80 bg-[#fbfaf7]/90 px-4 backdrop-blur md:px-7">
         <div className="flex items-center gap-3">

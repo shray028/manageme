@@ -43,6 +43,7 @@ export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }:
     }
   }
   const practiceStats = { problems: seenProblems.size, done };
+  const percentDone = practiceStats.problems ? Math.round((done / practiceStats.problems) * 100) : 0;
   const firstName = userName.trim().split(/\s+/)[0];
   const firstList = lists[0];
 
@@ -116,8 +117,27 @@ export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }:
 
       <aside className="dsa-dashboard-rail" aria-label="Practice summary">
         <p className="dsa-overline">YOUR PROGRESS</p>
-        <div className="dsa-rail-card"><p className="dsa-rail-card-label">Problems done</p><strong>{practiceStats.done}<span> / {practiceStats.problems}</span></strong><div className="dsa-progress" role="progressbar" aria-label="Overall problem progress" aria-valuemin={0} aria-valuemax={practiceStats.problems} aria-valuenow={practiceStats.done}><span style={{ width: `${practiceStats.problems ? Math.round(practiceStats.done / practiceStats.problems * 100) : 0}%` }} /></div><p>Every problem you return to adds up.</p></div>
-        <div className="dsa-rail-tip"><Cloud size={20} aria-hidden /><div><strong>Saved as you go</strong><p>Your sheets and notes sync to your account. A backup is available below.</p></div></div>
+        <div className="dsa-rail-card">
+          <div className="dsa-rail-card-top">
+            <p className="dsa-rail-card-label">Problems done</p>
+            <span className="dsa-rail-percent">{percentDone}%</span>
+          </div>
+          <strong>
+            {practiceStats.done}
+            <span> / {practiceStats.problems}</span>
+          </strong>
+          <div className="dsa-progress" role="progressbar" aria-label="Overall problem progress" aria-valuemin={0} aria-valuemax={practiceStats.problems} aria-valuenow={practiceStats.done}>
+            <span style={{ width: `${percentDone}%` }} />
+          </div>
+          <p>Across every sheet you’ve started. Every problem you return to adds up.</p>
+        </div>
+        <div className="dsa-rail-tip">
+          <span className="dsa-rail-tip-icon"><Cloud size={16} aria-hidden /></span>
+          <div>
+            <strong>Saved as you go</strong>
+            <p>Your sheets and notes sync to your account. You can also download a backup at the bottom of this page.</p>
+          </div>
+        </div>
       </aside>
     </div>
   );

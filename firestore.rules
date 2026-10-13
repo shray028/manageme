@@ -1,0 +1,73 @@
+rules_version = '2';
+
+// Every document lives under /users/{uid} and is private to that signed-in person.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function optionalString(data, field, max) {
+      return !(field in data) || (data[field] is string && data[field].size() <= max);
+    }
+
+    function optionalBool(data, field) {
+      return !(field in data) || data[field] is bool;
+    }
+
+    function validProgress(data) {
+      return data.size() <= 40
+        && optionalString(data, 'code', 100000)
+        && optionalString(data, 'completedNote', 20000)
+        && optionalString(data, 'revisedNote', 20000)
+        && optionalString(data, 'mistake', 20000)
+        && optionalString(data, 'title', 300)
+        && optionalString(data, 'language', 20)
+        && optionalBool(data, 'completed')
+        && optionalBool(data, 'revised')
+        && optionalBool(data, 'bookmarked')
+        && (!('links' in data) || data.links == null || (data.links is list && data.links.size() <= 30));
+    }
+
+    function validList(data) {
+      return data.size() <= 30
+        && optionalString(data, 'title', 300)
+        && optionalBool(data, 'archived')
+        && (!('problems' in data) || (data.problems is list && data.problems.size() <= 1000))
+        && (!('extraProblems' in data) || (data.extraProblems is list && data.extraProblems.size() <= 1000))
+        && (!('hiddenKeys' in data) || (data.hiddenKeys is list && data.hiddenKeys.size() <= 1000));
+    }
+
+    // The original workspace document (tasks, habits, projects, profile).
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // DSA progress: one document per problem. The app never deletes these.
+      match /dsaProgress/{key} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validProgress(request.resource.data);
+        allow delete: if false;
+
+        // Earlier versions of notes and code. Append-only so a bug can never erase them.
+        match /history/{entry} {
+          allow read: if isOwner(uid);
+          allow create: if isOwner(uid) && request.resource.data.size() <= 20;
+          allow update, delete: if false;
+        }
+      }
+
+      // DSA lists. "Removing" a list only archives it.
+      match /dsaLists/{listId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validList(request.resource.data);
+        allow delete: if false;
+
+        match /history/{entry} {
+          allow read: if isOwner(uid);
+          allow create: if isOwner(uid);
+          allow update, delete: if false;
+        }
+      }
+    }
+  }
+}

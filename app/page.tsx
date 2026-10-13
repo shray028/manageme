@@ -30,7 +30,6 @@ import {
   LogIn,
   LogOut,
   Menu,
-  MoreHorizontal,
   Pause,
   Play,
   Plus,
@@ -46,6 +45,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { PandaCompanion } from '@/components/panda-companion';
+import { BrandLogo } from '@/components/brand-logo';
 import { auth, db, firebaseApp, googleProvider } from '@/lib/firebase';
 import { RoadmapView } from './roadmap-view';
 
@@ -86,45 +86,13 @@ type WorkspaceProfile = {
   name?: string;
   focus?: string;
   features?: Feature[];
+  /** The small daily habit the person chose during setup. */
+  habit?: string;
 };
 type SyncState = 'idle' | 'saving' | 'saved' | 'offline' | 'error';
 
-const defaults: Task[] = [
-  {
-    id: 1,
-    title: 'DSA: dynamic programming set',
-    time: '9:00 AM',
-    duration: '90 min',
-    tag: 'DSA prep',
-    color: 'indigo',
-    priority: true,
-  },
-  {
-    id: 2,
-    title: 'Review Q4 project brief',
-    time: '11:00 AM',
-    duration: '45 min',
-    tag: 'Work',
-    color: 'orange',
-    priority: true,
-  },
-  {
-    id: 3,
-    title: 'Submit internship applications',
-    time: '4:00 PM',
-    duration: '60 min',
-    tag: 'Career',
-    color: 'rose',
-  },
-  {
-    id: 4,
-    title: 'Call Mom',
-    time: '6:30 PM',
-    duration: '20 min',
-    tag: 'Personal',
-    color: 'emerald',
-  },
-];
+// New workspaces start empty — nothing is pre-filled from anyone else's life.
+const defaults: Task[] = [];
 
 const nav = [
   ['Today', CalendarDays],
@@ -133,6 +101,36 @@ const nav = [
   ['Projects', FolderKanban],
   ['Insights', BrainCircuit],
 ] as const;
+
+const todayKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+const dayKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const greeting = () => {
+  const hour = new Date().getHours();
+  return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+};
+const minutesOf = (duration: string) => {
+  const match = /(\d+)\s*(h|hr|hour|m|min)?/i.exec(duration);
+  if (!match) return 0;
+  const value = Number(match[1]);
+  return match[2] && /^h/i.test(match[2]) ? value * 60 : value;
+};
+const formatMinutes = (total: number) => {
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  return hours ? `${hours}h${minutes ? ` ${minutes}m` : ''}` : `${minutes}m`;
+};
+/** Sort key for times like "9:00 AM"; unscheduled tasks go last. */
+const timeRank = (time: string) => {
+  const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(time.trim());
+  if (!match) return Number.POSITIVE_INFINITY;
+  let hour = Number(match[1]) % 12;
+  if (match[3].toUpperCase() === 'PM') hour += 12;
+  return hour * 60 + Number(match[2]);
+};
 
 const providerModels: Record<Provider, string> = {
   grok: 'grok-4.6',
@@ -162,7 +160,7 @@ function TaskRow({
       <button
         aria-label={`Mark ${task.title} as ${task.done ? 'incomplete' : 'complete'}`}
         onClick={() => onToggle(task.id)}
-        className={`grid size-5 shrink-0 place-items-center rounded-full border ${task.done ? 'border-teal-500 bg-teal-500 text-white' : 'border-stone-300 text-transparent hover:border-teal-500'}`}
+        className={`grid size-5 shrink-0 place-items-center rounded-full border ${task.done ? 'border-sky-500 bg-sky-500 text-white' : 'border-stone-300 text-transparent hover:border-sky-500'}`}
       >
         <Check className="size-3" strokeWidth={3} />
       </button>
@@ -213,7 +211,7 @@ function NavigationPanel({
   if (activeNav === 'Inbox')
     return (
       <div className="rounded-2xl border border-stone-200 bg-white p-6">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
           Capture first
         </p>
         <h2 className="mt-1 font-display text-2xl font-semibold">Inbox</h2>
@@ -235,7 +233,7 @@ function NavigationPanel({
   if (activeNav === 'Planner')
     return (
       <div className="rounded-2xl border border-stone-200 bg-white p-6">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
           Keep it realistic
         </p>
         <h2 className="mt-1 font-display text-2xl font-semibold">Planner</h2>
@@ -245,7 +243,7 @@ function NavigationPanel({
               key={task.id}
               className="flex items-center gap-4 rounded-xl bg-stone-50 px-4 py-3"
             >
-              <span className="w-24 text-xs font-bold text-teal-700">
+              <span className="w-24 text-xs font-bold text-blue-700">
                 {task.time}
               </span>
               <span className="text-sm font-medium text-stone-700">
@@ -259,7 +257,7 @@ function NavigationPanel({
   if (activeNav === 'Projects')
     return (
       <div className="rounded-2xl border border-stone-200 bg-white p-6">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-indigo-600">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600">
           Longer direction
         </p>
         <h2 className="mt-1 font-display text-2xl font-semibold">
@@ -282,7 +280,7 @@ function NavigationPanel({
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Name a project or goal"
           />
-          <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+          <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
             Add project
           </Button>
         </form>
@@ -367,7 +365,7 @@ function ProjectBoard({
             Raise a task, then add a Drive link or image directly on its card.
           </p>
         </div>
-        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-bold text-indigo-700">
+        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">
           {cards.length} cards
         </span>
       </div>
@@ -380,7 +378,7 @@ function ProjectBoard({
         <Button
           type="submit"
           size="sm"
-          className="bg-indigo-600 hover:bg-indigo-700"
+          className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="size-3.5" /> Add card
         </Button>
@@ -501,7 +499,7 @@ function ProjectBoard({
                               href={attachment.url}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex items-center gap-1.5 truncate text-[10px] font-semibold text-indigo-600 hover:underline"
+                              className="flex items-center gap-1.5 truncate text-[10px] font-semibold text-blue-600 hover:underline"
                             >
                               {attachment.kind === 'image' ? (
                                 <ImagePlus className="size-3" />
@@ -529,6 +527,22 @@ export default function Home() {
   const [activeNav, setActiveNav] = useState('Today');
   const [quickAdd, setQuickAdd] = useState('');
   const [habitDone, setHabitDone] = useState(false);
+  /** Days (YYYY-MM-DD) the habit was done, newest last. */
+  const [habitLog, setHabitLog] = useState<string[]>([]);
+  /** True when the cloud workspace failed to load: editing is paused so nothing can overwrite it. */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [pendingBackup, setPendingBackup] = useState<null | {
+    tasks?: Task[];
+    habitDone?: boolean;
+    habitLog?: string[];
+    projects?: Project[];
+    profile?: WorkspaceProfile;
+  }>(null);
+  const [showMobileNav, setShowMobileNav] = useState(false);
+  const pendingBackupRef = useRef(pendingBackup);
+  pendingBackupRef.current = pendingBackup;
+  const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'done'>('all');
   const [showCapture, setShowCapture] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [provider, setProvider] = useState<Provider>('grok');
@@ -588,10 +602,13 @@ export default function Home() {
       if (!active) return;
       setUser(nextUser);
       setCloudReady(false);
+      setLoadFailed(false);
+      setPendingBackup(null);
       setAuthError('');
       if (!nextUser) {
         setTasks(defaults);
         setHabitDone(false);
+        setHabitLog([]);
         setProjects([]);
         setProfile({});
         setAuthChecked(true);
@@ -606,37 +623,58 @@ export default function Home() {
           const saved = snapshot.data() as {
             tasks?: Task[];
             habitDone?: boolean;
+            habitLog?: string[];
             projects?: Project[];
             profile?: WorkspaceProfile;
           };
           if (Array.isArray(saved.tasks)) setTasks(saved.tasks);
-          setHabitDone(Boolean(saved.habitDone));
-          if (Array.isArray(saved.projects)) setProjects(saved.projects);
+          const log = Array.isArray(saved.habitLog) ? saved.habitLog.filter((day) => typeof day === 'string') : [];
+          setHabitLog(log);
+          // Older workspaces only stored a yes/no flag; the log now decides what "done today" means.
+          setHabitDone(Array.isArray(saved.habitLog) ? log.includes(todayKey()) : Boolean(saved.habitDone));
+          if (Array.isArray(saved.projects)) {
+            setProjects(saved.projects);
+            // People following a 60-day roadmap keep landing on it, as before.
+            if (saved.projects.some((project) => project?.title?.toLowerCase?.().includes('60-day roadmap')))
+              setActiveNav('Roadmap');
+          }
           const loadedProfile = saved.profile ?? {};
           setProfile(loadedProfile);
           setSetupName(
             loadedProfile.name || nextUser.displayName?.split(' ')[0] || '',
           );
           setSetupFocus(loadedProfile.focus || 'Personal life');
+          setSetupHabit(loadedProfile.habit || '');
           setSetupFeatures(
             loadedProfile.features?.length
               ? loadedProfile.features
               : ['tasks', 'habit'],
           );
           if (!loadedProfile.onboardingCompleted) setShowSetup(true);
+          // Changes that failed to save last time were kept on this device. Offer them back.
+          try {
+            const backup = window.localStorage.getItem(`manageme-pending-${nextUser.uid}`);
+            if (backup) setPendingBackup(JSON.parse(backup));
+          } catch {
+            /* an unreadable backup is left untouched */
+          }
         } else {
           // Bring any existing device-only data into the new account once.
           const legacyTasks = window.localStorage.getItem('manageme-tasks');
           const legacyHabit =
             window.localStorage.getItem('manageme-habit') === 'true';
-          const initialTasks = legacyTasks
-            ? (JSON.parse(legacyTasks) as Task[])
-            : defaults;
+          let initialTasks: Task[] = defaults;
+          try {
+            if (legacyTasks) initialTasks = JSON.parse(legacyTasks) as Task[];
+          } catch {
+            /* ignore unreadable legacy data */
+          }
           setTasks(initialTasks);
           setHabitDone(legacyHabit);
           await setDoc(workspace, {
             tasks: initialTasks,
             habitDone: legacyHabit,
+            habitLog: [],
             projects: [],
             profile: {
               name: nextUser.displayName ?? '',
@@ -656,9 +694,10 @@ export default function Home() {
         }
       } catch (error) {
         if (active) {
+          setLoadFailed(true);
           setSyncState('error');
           setSyncError(
-            'We could not load your cloud workspace. Your next changes will be kept on this device until you retry.',
+            'We could not load your workspace, so editing is paused to keep your saved data safe. Check your connection and press Retry.',
           );
           setAuthError(
             error instanceof Error
@@ -674,7 +713,7 @@ export default function Home() {
       active = false;
       unsubscribe();
     };
-  }, []);
+  }, [loadAttempt]);
   useEffect(() => {
     if (!user || !cloudReady) return;
     const timeout = window.setTimeout(async () => {
@@ -682,11 +721,13 @@ export default function Home() {
       const workspaceData = {
         tasks,
         habitDone,
+        habitLog,
         projects,
         profile,
+        savedAt: Date.now(),
       };
       if (!navigator.onLine) {
-        window.localStorage.setItem(backupKey, JSON.stringify(workspaceData));
+        if (!pendingBackupRef.current) window.localStorage.setItem(backupKey, JSON.stringify(workspaceData));
         setSyncState('offline');
         return;
       }
@@ -697,11 +738,12 @@ export default function Home() {
           { ...workspaceData, updatedAt: serverTimestamp() },
           { merge: true },
         );
-        window.localStorage.removeItem(backupKey);
+        // Keep an older unsaved copy until the person decides what to do with it.
+        if (!pendingBackupRef.current) window.localStorage.removeItem(backupKey);
         setSyncError('');
         setSyncState('saved');
       } catch {
-        window.localStorage.setItem(backupKey, JSON.stringify(workspaceData));
+        if (!pendingBackupRef.current) window.localStorage.setItem(backupKey, JSON.stringify(workspaceData));
         setSyncState('error');
         setSyncError(
           'Couldn’t save just now. Your changes are safely kept on this device. Retry when you are online.',
@@ -709,7 +751,7 @@ export default function Home() {
       }
     }, 350);
     return () => window.clearTimeout(timeout);
-  }, [tasks, habitDone, projects, profile, user, cloudReady]);
+  }, [tasks, habitDone, habitLog, projects, profile, user, cloudReady]);
   useEffect(() => {
     const goOnline = () => setSyncState('idle');
     const goOffline = () => setSyncState('offline');
@@ -764,11 +806,42 @@ export default function Home() {
     user?.email?.split('@')[0] ||
     'there';
   const requireAccount = () => {
+    if (user && loadFailed) {
+      setSyncError('Your workspace hasn’t loaded yet, so changes are paused to protect your saved data. Press Retry.');
+      return false;
+    }
     if (user) return true;
     setAuthError(
       'Sign in with Google to save your workspace and use it on every device.',
     );
     return false;
+  };
+  const toggleHabit = () => {
+    if (!requireAccount()) return;
+    const today = todayKey();
+    const next = !habitDone;
+    setHabitDone(next);
+    setHabitLog((log) => {
+      const without = log.filter((day) => day !== today);
+      return (next ? [...without, today] : without).slice(-120);
+    });
+  };
+  const restorePendingBackup = () => {
+    if (!pendingBackup) return;
+    if (Array.isArray(pendingBackup.tasks)) setTasks(pendingBackup.tasks);
+    if (Array.isArray(pendingBackup.projects)) setProjects(pendingBackup.projects);
+    if (Array.isArray(pendingBackup.habitLog)) {
+      setHabitLog(pendingBackup.habitLog);
+      setHabitDone(pendingBackup.habitLog.includes(todayKey()));
+    }
+    if (pendingBackup.profile) setProfile(pendingBackup.profile);
+    setPendingBackup(null);
+  };
+  const discardPendingBackup = () => {
+    if (!user) return;
+    if (!window.confirm('Discard the unsaved changes kept on this device? Your saved workspace stays as it is.')) return;
+    window.localStorage.removeItem(`manageme-pending-${user.uid}`);
+    setPendingBackup(null);
   };
   const toggleTask = (id: number) => {
     if (!requireAccount()) return;
@@ -893,11 +966,17 @@ export default function Home() {
   };
   const retrySync = async () => {
     if (!user) return;
+    if (loadFailed || !cloudReady) {
+      // Never push local state when we never saw the saved workspace — that could overwrite it.
+      setSyncError('');
+      setLoadAttempt((value) => value + 1);
+      return;
+    }
     setSyncState('saving');
     try {
       await setDoc(
         doc(db, 'users', user.uid),
-        { tasks, habitDone, projects, profile, updatedAt: serverTimestamp() },
+        { tasks, habitDone, habitLog, projects, profile, updatedAt: serverTimestamp() },
         { merge: true },
       );
       window.localStorage.removeItem(`manageme-pending-${user.uid}`);
@@ -919,13 +998,15 @@ export default function Home() {
     setShowFocus(true);
   };
   const finishSetup = () => {
-    const features = setupFeatures.length ? setupFeatures : ['tasks'];
-    setProfile({
+    const features: Feature[] = setupFeatures.length ? setupFeatures : ['tasks'];
+    setProfile((current) => ({
+      ...current,
       onboardingCompleted: true,
       name: setupName.trim() || firstName,
       focus: setupFocus,
       features,
-    });
+      habit: setupHabit.trim() || current.habit || '',
+    }));
     if (setupTask.trim() && !tasks.length)
       setTasks([
         {
@@ -1037,26 +1118,21 @@ export default function Home() {
 
   if (!authChecked)
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f6f5f1] text-sm font-semibold text-teal-800">
+      <main className="grid min-h-screen place-items-center bg-[#f4f8ff] text-sm font-semibold text-blue-800">
         Preparing your calm space…
       </main>
     );
   if (!user)
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#f6f5f1] text-stone-900">
-        <div className="absolute -left-24 top-24 size-72 rounded-full bg-teal-100/60 blur-3xl" />
-        <div className="absolute -right-24 bottom-4 size-80 rounded-full bg-rose-100/70 blur-3xl" />
+      <main className="relative min-h-screen overflow-hidden bg-[#f4f8ff] text-[#0b2454]">
+        <div className="absolute -left-24 top-24 size-72 rounded-full bg-sky-100/80 blur-3xl" />
+        <div className="absolute -right-24 bottom-4 size-80 rounded-full bg-cyan-100/80 blur-3xl" />
         <header className="relative z-10 mx-auto flex h-20 max-w-6xl items-center justify-between px-5">
-          <div className="flex items-center gap-2.5">
-            <div className="grid size-8 place-items-center rounded-[11px] bg-teal-700 text-sm font-bold text-white">
-              m
-            </div>
-            <span className="font-display text-lg font-semibold">ManageMe</span>
-          </div>
+          <BrandLogo />
           <Button
             onClick={signIn}
             disabled={authLoading}
-            className="bg-teal-700 hover:bg-teal-800"
+            className="bg-blue-700 hover:bg-blue-800"
           >
             <LogIn className="size-4" />
             {authLoading ? 'Opening Google…' : 'Start with Google'}
@@ -1064,7 +1140,7 @@ export default function Home() {
         </header>
         <section className="relative z-10 mx-auto grid max-w-6xl items-center gap-8 px-5 pb-20 pt-12 md:grid-cols-[1.05fr_.95fr] md:pt-24">
           <div>
-            <p className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-bold tracking-wide text-teal-800">
+            <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold tracking-wide text-blue-800">
               YOUR CALMER WAY FORWARD
             </p>
             <h1 className="mt-5 max-w-xl font-display text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.045em] sm:text-5xl lg:text-[3.5rem]">
@@ -1078,23 +1154,44 @@ export default function Home() {
               and projects that grow with you — without making your day feel
               like a system to manage.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button
+            <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-2">
+              <a
+                href="#/dsa"
+                onClick={() => {
+                  try {
+                    window.localStorage.setItem('manageme:start', 'dsa');
+                  } catch {
+                    /* optional */
+                  }
+                }}
+                className="rounded-2xl border border-sky-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-400"
+              >
+                <span className="block text-base font-bold text-stone-900">Track DSA practice</span>
+                <span className="mt-1 block text-sm text-stone-600">
+                  Sheets like Striver&apos;s 180, done and revised checkboxes, code and notes per problem.
+                </span>
+              </a>
+              <button
+                type="button"
                 onClick={signIn}
                 disabled={authLoading}
-                size="lg"
-                className="bg-teal-700 hover:bg-teal-800"
+                className="flex flex-col items-start rounded-2xl border border-cyan-200 bg-white p-4 text-left shadow-sm transition hover:border-cyan-500"
               >
-                Build my calm workspace <ArrowUpRight className="size-4" />
-              </Button>
-              <span className="self-center text-xs font-semibold text-stone-500">
-                Free to begin · Google sign-in keeps it private
-              </span>
+                <span className="block text-base font-bold text-stone-900">
+                  {authLoading ? 'Opening Google…' : 'Plan my days'}
+                </span>
+                <span className="mt-1 block text-sm text-stone-600">
+                  Tasks, a small habit, focus sessions and project boards.
+                </span>
+              </button>
             </div>
+            <p className="mt-3 text-xs font-semibold text-stone-500">
+              Free to begin · Google sign-in keeps your data private
+            </p>
           </div>
-          <div className="relative mx-auto w-full max-w-md rounded-[2.5rem] border border-white/80 bg-white/70 p-5 shadow-[0_24px_70px_rgba(26,75,70,.12)] backdrop-blur">
-            <div className="rounded-[2rem] bg-[#fdf6f2] px-6 pb-4 pt-7">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-500">
+          <div className="relative mx-auto w-full max-w-md rounded-[2.5rem] border border-white/80 bg-white/70 p-5 shadow-[0_24px_70px_rgba(23,105,216,.12)] backdrop-blur">
+            <div className="rounded-[2rem] bg-[#edf8ff] px-6 pb-4 pt-7">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-700">
                 Your gentle co-pilot
               </p>
               <p className="mt-2 font-display text-2xl font-semibold">
@@ -1109,13 +1206,13 @@ export default function Home() {
               />
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-bold text-stone-600">
-              <span className="rounded-xl bg-teal-50 px-2 py-3">
+              <span className="rounded-xl bg-sky-50 px-2 py-3">
                 Habit rhythm
               </span>
-              <span className="rounded-xl bg-indigo-50 px-2 py-3">
+              <span className="rounded-xl bg-blue-50 px-2 py-3">
                 Focus sessions
               </span>
-              <span className="rounded-xl bg-rose-50 px-2 py-3">
+              <span className="rounded-xl bg-cyan-50 px-2 py-3">
                 Projects board
               </span>
             </div>
@@ -1129,10 +1226,10 @@ export default function Home() {
       </main>
     );
 
-    const roadmapProject = projects.find((project) =>
+  const roadmapProject = projects.find((project) =>
     project.title.toLowerCase().includes('60-day roadmap'),
   );
-  if (roadmapProject) {
+  if (roadmapProject && activeNav === 'Roadmap') {
     const hasOldData =
       tasks.length > 0 ||
       habitDone ||
@@ -1147,6 +1244,7 @@ export default function Home() {
         hasOldData={hasOldData}
         onRetrySync={retrySync}
         onSignOut={signOutOfManageMe}
+        onBack={() => setActiveNav('Today')}
         onCheck={(day, index, checked, totalChecks) => {
           updateProject(roadmapProject.id, (project) => {
             const cards = project.cards ?? [];
@@ -1173,6 +1271,12 @@ export default function Home() {
           });
         }}
         onClearOldData={() => {
+          if (
+            !window.confirm(
+              'Remove your daily tasks, the habit, and every project except this roadmap? This cannot be undone.',
+            )
+          )
+            return;
           setTasks([]);
           setHabitDone(false);
           setProjects((items) =>
@@ -1190,22 +1294,36 @@ export default function Home() {
     );
   }
 
-return (
-    <main className="min-h-screen bg-[#f6f5f1] text-stone-900">
-      <header className="sticky top-0 z-20 flex h-[65px] items-center justify-between border-b border-stone-200/80 bg-[#fbfaf7]/90 px-4 backdrop-blur md:px-7">
+  const openTasks = tasks.filter((task) => !task.done);
+  const priorityCount = openTasks.filter((task) => task.priority).length;
+  const plannedMinutes = openTasks.reduce((total, task) => total + minutesOf(task.duration), 0);
+  const scheduled = tasks
+    .filter((task) => timeRank(task.time) !== Number.POSITIVE_INFINITY)
+    .sort((a, b) => timeRank(a.time) - timeRank(b.time));
+  const unscheduledCount = openTasks.filter((task) => timeRank(task.time) === Number.POSITIVE_INFINITY).length;
+  const visibleTasks =
+    taskFilter === 'open' ? openTasks : taskFilter === 'done' ? tasks.filter((task) => task.done) : tasks;
+  const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    return { key: dayKey(date), label: date.toLocaleDateString(undefined, { weekday: 'narrow' }), full: date.toLocaleDateString(undefined, { weekday: 'long' }) };
+  });
+  const habitDaysThisWeek = lastSevenDays.filter((day) => habitLog.includes(day.key)).length;
+  const navItems = [...nav, ...(roadmapProject ? ([['Roadmap', Target]] as const) : [])];
+
+  return (
+    <main className="min-h-screen bg-[#f4f8ff] text-stone-900">
+      <header className="sticky top-0 z-20 flex h-[65px] items-center justify-between border-b border-sky-200/80 bg-white/90 px-4 backdrop-blur md:px-7">
         <div className="flex items-center gap-3">
           <button
             className="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100 lg:hidden"
-            aria-label="Open navigation"
+            aria-label={showMobileNav ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={showMobileNav}
+            onClick={() => setShowMobileNav((value) => !value)}
           >
-            <Menu className="size-5" />
+            {showMobileNav ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
-          <div className="grid size-8 place-items-center rounded-[11px] bg-teal-700 text-sm font-bold text-white shadow-sm">
-            m
-          </div>
-          <span className="font-display text-[17px] font-semibold tracking-[-0.04em]">
-            ManageMe
-          </span>
+          <BrandLogo compact />
         </div>
         <button
           onClick={() => setShowCapture(true)}
@@ -1220,12 +1338,18 @@ return (
           </kbd>
         </button>
         <div className="flex items-center gap-2">
+          <a
+            href="#/dsa"
+            className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-100"
+          >
+            <BookOpen className="size-3.5" /> DSA practice
+          </a>
           <button
             onClick={() => {
               setFocusTask(nextTask?.title || '');
               setShowFocus(true);
             }}
-            className="hidden items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100 sm:flex"
+            className="hidden items-center gap-1.5 rounded-lg bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-blue-800 hover:bg-sky-100 sm:flex"
           >
             <TimerReset className="size-3.5" /> Focus
           </button>
@@ -1254,7 +1378,7 @@ return (
               onClick={signIn}
               disabled={authLoading}
               size="sm"
-              className="bg-teal-700 text-[11px] hover:bg-teal-800"
+              className="bg-blue-700 text-[11px] hover:bg-blue-800"
             >
               <LogIn className="size-3.5" />
               {authLoading ? 'Opening Google…' : 'Sign in'}
@@ -1263,22 +1387,42 @@ return (
         </div>
       </header>
 
+      {showMobileNav && (
+        <nav className="border-b border-stone-200 bg-white px-4 py-3 lg:hidden" aria-label="Workspace">
+          <div className="flex flex-wrap gap-2">
+            {navItems.map(([name, Icon]) => (
+              <button
+                key={name}
+                onClick={() => {
+                  setActiveNav(name);
+                  setShowMobileNav(false);
+                }}
+                aria-current={activeNav === name ? 'page' : undefined}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${activeNav === name ? 'bg-sky-50 text-blue-800' : 'text-stone-600 hover:bg-stone-100'}`}
+              >
+                <Icon className="size-4" /> {name}
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
       <div className="mx-auto grid max-w-[1550px] grid-cols-1 lg:grid-cols-[210px_minmax(0,1fr)_290px]">
         <aside className="hidden min-h-[calc(100vh-65px)] border-r border-stone-200/80 px-4 py-6 lg:block">
           <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.13em] text-stone-400">
             Navigate
           </p>
-          <nav className="space-y-1">
-            {nav.map(([name, Icon]) => (
+          <nav className="space-y-1" aria-label="Workspace">
+            {navItems.map(([name, Icon]) => (
               <button
                 key={name}
                 onClick={() => setActiveNav(name)}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition ${activeNav === name ? 'bg-white text-teal-800 shadow-sm ring-1 ring-stone-200/70' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-700'}`}
+                aria-current={activeNav === name ? 'page' : undefined}
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition ${activeNav === name ? 'bg-white text-blue-800 shadow-sm ring-1 ring-stone-200/70' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-700'}`}
               >
                 <Icon className="size-4" /> {name}
-                {name === 'Inbox' && (
+                {name === 'Inbox' && unscheduledCount > 0 && (
                   <span className="ml-auto rounded-full bg-orange-100 px-1.5 text-[10px] font-bold text-orange-700">
-                    3
+                    {unscheduledCount}
                   </span>
                 )}
               </button>
@@ -1286,19 +1430,32 @@ return (
           </nav>
           <div className="mt-9 border-t border-stone-200 pt-6">
             <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.13em] text-stone-400">
-              Your north stars
+              Your projects
             </p>
-            <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-stone-600 hover:bg-stone-100">
-              <span className="size-2 rounded-full bg-indigo-400" /> DSA mastery
-            </button>
-            <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-stone-600 hover:bg-stone-100">
-              <span className="size-2 rounded-full bg-orange-400" /> Career
-              growth
-            </button>
+            {projects.length ? (
+              projects.slice(0, 6).map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => setActiveNav(project.id === roadmapProject?.id ? 'Roadmap' : 'Projects')}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-stone-600 hover:bg-stone-100"
+                >
+                  <span className="size-2 shrink-0 rounded-full bg-blue-400" />
+                  <span className="truncate">{project.title}</span>
+                </button>
+              ))
+            ) : (
+              <p className="px-3 text-[12px] text-stone-400">Projects you add show up here.</p>
+            )}
+            <a
+              href="#/dsa"
+              className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-stone-600 hover:bg-stone-100"
+            >
+              <BookOpen className="size-3.5 text-blue-500" /> DSA practice
+            </a>
           </div>
           <button
             onClick={() => setShowCapture(true)}
-            className="mt-8 flex items-center gap-2 px-3 text-xs font-semibold text-teal-700 hover:text-teal-900"
+            className="mt-8 flex items-center gap-2 px-3 text-xs font-semibold text-blue-700 hover:text-blue-900"
           >
             <CirclePlus className="size-4" /> Capture
           </button>
@@ -1307,18 +1464,29 @@ return (
         <section className="min-w-0 px-4 py-7 sm:px-7 lg:px-9 xl:px-12">
           <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-teal-700">
-                Wednesday · September 3
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700">
+                {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
               </p>
               <h1 className="font-display text-3xl font-semibold tracking-[-0.055em] text-stone-900 sm:text-[34px]">
-                Good morning, {firstName}.
+                {greeting()}, {firstName}.
               </h1>
               <p className="mt-1 text-[13px] text-stone-500">
-                A realistic day:{' '}
-                <span className="font-semibold text-stone-700">
-                  3 priorities
-                </span>
-                , 3h 35m of focused work, 45m protected buffer.
+                {openTasks.length ? (
+                  <>
+                    {openTasks.length} open task{openTasks.length === 1 ? '' : 's'}
+                    {priorityCount ? (
+                      <>
+                        {', '}
+                        <span className="font-semibold text-stone-700">
+                          {priorityCount} priorit{priorityCount === 1 ? 'y' : 'ies'}
+                        </span>
+                      </>
+                    ) : null}
+                    {plannedMinutes ? `, about ${formatMinutes(plannedMinutes)} of work planned.` : '.'}
+                  </>
+                ) : (
+                  'Nothing planned yet. Add one useful thing for today.'
+                )}
               </p>
             </div>
             <button
@@ -1326,7 +1494,7 @@ return (
                 setFocusTask(nextTask?.title || '');
                 setShowFocus(true);
               }}
-              className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-800 shadow-sm hover:bg-teal-100"
+              className="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-bold text-blue-800 shadow-sm hover:bg-sky-100"
             >
               <TimerReset className="size-3.5" /> Start focus
             </button>
@@ -1347,7 +1515,7 @@ return (
                 onClick={signIn}
                 disabled={authLoading}
                 size="sm"
-                className="bg-teal-700 hover:bg-teal-800"
+                className="bg-blue-700 hover:bg-blue-800"
               >
                 <LogIn className="size-3.5" /> Sign in with Google
               </Button>
@@ -1361,7 +1529,7 @@ return (
                     ? 'text-rose-700'
                     : syncState === 'offline'
                       ? 'text-orange-700'
-                      : 'text-teal-700'
+                      : 'text-blue-700'
                 }
               >
                 {syncState === 'saving' ? (
@@ -1388,14 +1556,30 @@ return (
                   </>
                 )}
               </span>
-              {(syncState === 'error' || syncState === 'offline') && (
+              {(syncState === 'error' || syncState === 'offline' || loadFailed) && (
                 <button
                   onClick={retrySync}
                   className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-[10px] font-bold text-stone-700 hover:bg-stone-50"
                 >
-                  Retry sync
+                  {loadFailed ? 'Retry loading' : 'Retry sync'}
                 </button>
               )}
+            </div>
+          )}
+          {pendingBackup && (
+            <div className="mb-5 rounded-xl border border-orange-200 bg-orange-50 p-4 text-[12px] text-orange-950" role="alert">
+              <p className="font-bold">Unsaved changes from an earlier visit were found on this device.</p>
+              <p className="mt-1">
+                They didn&apos;t reach your account last time. Restore them to replace what is shown now, or discard them.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" onClick={restorePendingBackup} className="bg-blue-700 hover:bg-blue-800">
+                  Restore those changes
+                </Button>
+                <Button size="sm" variant="outline" onClick={discardPendingBackup}>
+                  Discard
+                </Button>
+              </div>
             </div>
           )}
           {syncError && (
@@ -1423,30 +1607,45 @@ return (
 
           {activeNav === 'Today' ? (
             <>
-              <div className="mb-5 rounded-2xl border border-teal-100 bg-[#eff8f6] p-4 sm:flex sm:items-center sm:justify-between">
+              {roadmapProject && (
+                <button
+                  onClick={() => setActiveNav('Roadmap')}
+                  className="mb-5 flex w-full items-center justify-between rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-left hover:border-blue-300"
+                >
+                  <span>
+                    <span className="block text-[12px] font-bold text-blue-950">Continue your 60-day roadmap</span>
+                    <span className="block text-[12px] text-blue-800/80">Pick up where you left off.</span>
+                  </span>
+                  <ChevronRight className="size-4 text-blue-700" />
+                </button>
+              )}
+              <div className="mb-5 rounded-2xl border border-sky-100 bg-[#eff8f6] p-4 sm:flex sm:items-center sm:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-teal-700 text-white">
+                  <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-blue-700 text-white">
                     <Target className="size-4" />
                   </div>
                   <div>
-                    <p className="text-[12px] font-bold text-teal-950">
-                      Right now: protect the first 90 minutes.
+                    <p className="text-[12px] font-bold text-blue-950">
+                      {openTasks.length ? `Next up: ${(openTasks.find((task) => task.priority) ?? openTasks[0]).title}` : 'Your list is clear.'}
                     </p>
-                    <p className="mt-0.5 text-[12px] text-teal-800/75">
-                      Your hardest work is scheduled before the 10:45 standup —
-                      a good match for your energy pattern.
+                    <p className="mt-0.5 text-[12px] text-blue-800/75">
+                      {openTasks.length
+                        ? 'One thing at a time. Start a focus session when you are ready.'
+                        : 'Capture something useful, or enjoy the space.'}
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setFocusTask(nextTask?.title || '');
-                    setShowFocus(true);
-                  }}
-                  className="mt-3 flex shrink-0 items-center gap-1.5 text-xs font-bold text-teal-800 hover:text-teal-950 sm:mt-0"
-                >
-                  Start focus <ChevronRight className="size-3.5" />
-                </button>
+                {openTasks.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setFocusTask((openTasks.find((task) => task.priority) ?? openTasks[0]).title);
+                      setShowFocus(true);
+                    }}
+                    className="mt-3 flex shrink-0 items-center gap-1.5 text-xs font-bold text-blue-800 hover:text-blue-950 sm:mt-0"
+                  >
+                    Start focus <ChevronRight className="size-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_220px]">
@@ -1460,26 +1659,33 @@ return (
                         Your work has a home in time — not just a list.
                       </p>
                     </div>
-                    <button
-                      className="grid size-7 place-items-center rounded-lg text-stone-400 hover:bg-stone-100"
-                      aria-label="More plan options"
-                    >
-                      <MoreHorizontal className="size-4" />
-                    </button>
+
                   </div>
                   <div className="mb-3 flex gap-2 overflow-x-auto border-b border-stone-100 pb-3">
-                    <button className="rounded-md bg-stone-100 px-2.5 py-1 text-[11px] font-bold text-stone-700">
-                      All {tasks.length}
-                    </button>
-                    <button className="rounded-md px-2.5 py-1 text-[11px] font-semibold text-stone-400 hover:bg-stone-50">
-                      Focus 2
-                    </button>
-                    <button className="rounded-md px-2.5 py-1 text-[11px] font-semibold text-stone-400 hover:bg-stone-50">
-                      Later 2
-                    </button>
+                    {(
+                      [
+                        ['all', `All ${tasks.length}`],
+                        ['open', `To do ${openTasks.length}`],
+                        ['done', `Done ${tasks.length - openTasks.length}`],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={value}
+                        onClick={() => setTaskFilter(value)}
+                        aria-pressed={taskFilter === value}
+                        className={`rounded-md px-2.5 py-1 text-[11px] ${taskFilter === value ? 'bg-stone-100 font-bold text-stone-700' : 'font-semibold text-stone-500 hover:bg-stone-50'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                   <div className="divide-y divide-stone-100">
-                    {tasks.map((task) => (
+                    {!visibleTasks.length && (
+                      <p className="px-2 py-4 text-[12px] text-stone-400">
+                        {tasks.length ? 'Nothing here.' : 'No tasks yet. Add your first one below.'}
+                      </p>
+                    )}
+                    {visibleTasks.map((task) => (
                       <TaskRow
                         key={task.id}
                         task={task}
@@ -1491,7 +1697,7 @@ return (
                     onSubmit={handleQuickAdd}
                     className="mt-3 flex gap-2 border-t border-stone-100 pt-3"
                   >
-                    <Plus className="mt-2 size-4 text-teal-700" />
+                    <Plus className="mt-2 size-4 text-blue-700" />
                     <Input
                       value={quickAdd}
                       onChange={(event) => setQuickAdd(event.target.value)}
@@ -1502,7 +1708,7 @@ return (
                       type="submit"
                       size="sm"
                       variant="ghost"
-                      className="text-teal-700"
+                      className="text-blue-700"
                     >
                       Add
                     </Button>
@@ -1510,33 +1716,20 @@ return (
                 </div>
                 <div className="space-y-5">
                   <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(25,30,25,0.03)]">
-                    <div className="flex items-center justify-between">
-                      <h2 className="font-display text-base font-semibold tracking-[-0.03em]">
-                        Daily capacity
-                      </h2>
-                      <span className="text-[10px] font-bold text-orange-600">
-                        healthy
-                      </span>
-                    </div>
-                    <div className="mt-4 flex items-end gap-1.5">
-                      {[46, 68, 34, 82, 55, 20, 15].map((height, index) => (
-                        <div key={height} className="flex-1">
-                          <div
-                            className={`rounded-t-sm ${index === 3 ? 'bg-teal-600' : 'bg-stone-200'}`}
-                            style={{ height: `${height}px` }}
-                          />
-                          <p className="mt-1 text-center text-[8px] text-stone-400">
-                            {['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-[11px]">
-                      <span className="text-stone-500">Free focus time</span>
-                      <span className="font-bold text-stone-800">
-                        45 min buffer
-                      </span>
-                    </div>
+                    <h2 className="font-display text-base font-semibold tracking-[-0.03em]">
+                      Today&apos;s progress
+                    </h2>
+                    <p className="mt-3 font-display text-3xl font-semibold">
+                      {tasks.length - openTasks.length}/{tasks.length}
+                    </p>
+                    <p className="text-[11px] text-stone-500">tasks done</p>
+                    <Progress
+                      value={tasks.length ? ((tasks.length - openTasks.length) / tasks.length) * 100 : 0}
+                      className="mt-3 [&_[data-slot=progress-indicator]]:bg-cyan-700"
+                    />
+                    <p className="mt-3 text-[11px] text-stone-500">
+                      {plannedMinutes ? `About ${formatMinutes(plannedMinutes)} of work left.` : 'No time planned yet.'}
+                    </p>
                   </div>
                   <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(25,30,25,0.03)]">
                     <div className="flex items-center justify-between">
@@ -1549,82 +1742,97 @@ return (
                         </p>
                       </div>
                       <button
-                        onClick={() => {
-                          if (requireAccount()) setHabitDone(!habitDone);
-                        }}
-                        className={`grid size-7 place-items-center rounded-full ${habitDone ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-400 hover:bg-teal-50 hover:text-teal-700'}`}
+                        onClick={toggleHabit}
+                        className={`grid size-7 place-items-center rounded-full ${habitDone ? 'bg-cyan-700 text-white' : 'bg-stone-100 text-stone-400 hover:bg-sky-50 hover:text-blue-700'}`}
                         aria-label="Toggle micro commitment"
                       >
                         <Check className="size-3.5" />
                       </button>
                     </div>
-                    <p
-                      className={`mt-4 text-[12px] font-semibold ${habitDone ? 'text-teal-700 line-through' : 'text-stone-700'}`}
-                    >
-                      No phone until I&apos;m ready for office
-                    </p>
-                    <div className="mt-4 flex items-center justify-between">
-                      {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
-                        <div key={`${day}-${index}`}>
-                          <div
-                            className={`grid size-5 place-items-center rounded-full text-[9px] font-bold ${index < 2 || (index === 2 && habitDone) ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-400'}`}
-                          >
-                            {index < 2 || (index === 2 && habitDone) ? (
-                              <Check className="size-3" />
-                            ) : (
-                              day
-                            )}
+                    {profile.habit ? (
+                      <p
+                        className={`mt-4 text-[12px] font-semibold ${habitDone ? 'text-blue-700 line-through' : 'text-stone-700'}`}
+                      >
+                        {profile.habit}
+                      </p>
+                    ) : (
+                      <form
+                        className="mt-4 flex gap-1.5"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          const habit = setupHabit.trim();
+                          if (!habit || !requireAccount()) return;
+                          setProfile((current) => ({ ...current, habit }));
+                        }}
+                      >
+                        <Input
+                          value={setupHabit}
+                          onChange={(event) => setSetupHabit(event.target.value)}
+                          placeholder="e.g. 10 minutes of reading"
+                          aria-label="Your small daily habit"
+                          className="h-8 text-[12px]"
+                        />
+                        <Button type="submit" size="sm" className="h-8 bg-blue-700 hover:bg-blue-800">
+                          Set
+                        </Button>
+                      </form>
+                    )}
+                    <div className="mt-4 flex items-center justify-between" aria-label={`Done on ${habitDaysThisWeek} of the last 7 days`}>
+                      {lastSevenDays.map((day) => {
+                        const done = habitLog.includes(day.key);
+                        return (
+                          <div key={day.key} title={`${day.full}: ${done ? 'done' : 'not done'}`}>
+                            <div
+                              className={`grid size-5 place-items-center rounded-full text-[9px] font-bold ${done ? 'bg-cyan-700 text-white' : 'bg-stone-100 text-stone-500'}`}
+                            >
+                              {done ? <Check className="size-3" /> : day.label}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
-                    <p className="mt-3 text-[10px] text-stone-400">
-                      2-day rhythm · consistency, not streak pressure
+                    <p className="mt-3 text-[10px] text-stone-500">
+                      {habitDaysThisWeek} of the last 7 days · consistency, not streak pressure
                     </p>
                   </div>
                 </div>
               </div>
 
-              {(!profile.onboardingCompleted ||
-                profile.features?.includes('projects')) && (
+              {projects.filter((project) => project.id !== roadmapProject?.id).length > 0 && (
                 <div className="mt-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(25,30,25,0.03)] sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-indigo-600">
-                        3-month direction
-                      </p>
-                      <h2 className="mt-1 font-display text-lg font-semibold tracking-[-0.035em]">
-                        Become interview-ready in DSA
-                      </h2>
-                    </div>
-                    <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-bold text-indigo-700">
-                      8 weeks left
-                    </span>
+                    <h2 className="font-display text-lg font-semibold tracking-[-0.035em]">Projects</h2>
+                    <button
+                      onClick={() => setActiveNav('Projects')}
+                      className="flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900"
+                    >
+                      Open boards <ChevronRight className="size-3.5" />
+                    </button>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    {[
-                      ['Foundation', 74],
-                      ['Patterns', 32],
-                      ['Mock interviews', 0],
-                    ].map(([label, amount]) => (
-                      <div key={label as string}>
-                        <div className="mb-1.5 flex justify-between text-[10px] text-stone-500">
-                          <span>{label}</span>
-                          <span>{amount}%</span>
-                        </div>
-                        <Progress
-                          value={amount as number}
-                          className="[&_[data-slot=progress-indicator]]:bg-indigo-500"
-                        />
-                      </div>
-                    ))}
+                    {projects
+                      .filter((project) => project.id !== roadmapProject?.id)
+                      .slice(0, 6)
+                      .map((project) => {
+                        const cards = project.cards ?? [];
+                        const done = cards.filter((card) => card.status === 'Done').length;
+                        const amount = cards.length ? Math.round((done / cards.length) * 100) : 0;
+                        return (
+                          <div key={project.id}>
+                            <div className="mb-1.5 flex justify-between gap-2 text-[11px] text-stone-600">
+                              <span className="truncate">{project.title}</span>
+                              <span className="shrink-0">
+                                {done}/{cards.length} done
+                              </span>
+                            </div>
+                            <Progress
+                              value={amount}
+                              className="[&_[data-slot=progress-indicator]]:bg-blue-500"
+                            />
+                          </div>
+                        );
+                      })}
                   </div>
-                  <p className="mt-4 text-[11px] text-stone-500">
-                    <span className="font-semibold text-stone-700">
-                      This week:
-                    </span>{' '}
-                    3 of 5 focused sessions are protected in your calendar.
-                  </p>
                 </div>
               )}
             </>
@@ -1647,39 +1855,30 @@ return (
                 Your day
               </p>
               <h2 className="font-display text-lg font-semibold tracking-[-0.035em]">
-                On the calendar
+                Scheduled today
               </h2>
             </div>
             <CalendarDays className="size-4 text-stone-400" />
           </div>
-          <div className="relative border-l border-stone-200 pl-4">
-            <div className="absolute -left-[3px] top-[21px] size-1.5 rounded-full bg-teal-600" />
-            <p className="text-[10px] font-bold text-teal-700">NOW · 9:12 AM</p>
-            <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3">
-              <p className="text-[12px] font-bold text-indigo-950">
-                DSA deep work
-              </p>
-              <p className="mt-1 text-[10px] text-indigo-700">
-                9:00 – 10:30 · Focus
-              </p>
-            </div>
-            {[
-              ['10:45 AM', 'Engineering standup', '25 min · Google Calendar'],
-              ['11:00 AM', 'Project brief review', '45 min · Work'],
-              ['2:00 PM', 'Client sync', '60 min · Google Calendar'],
-            ].map(([time, title, detail]) => (
-              <div
-                key={title}
-                className="mt-5 border-t border-dashed border-stone-200 pt-4"
-              >
-                <p className="text-[10px] font-bold text-stone-400">{time}</p>
-                <p className="mt-1 text-[12px] font-semibold text-stone-700">
-                  {title}
-                </p>
-                <p className="text-[10px] text-stone-400">{detail}</p>
-              </div>
-            ))}
-          </div>
+          {scheduled.length ? (
+            <ol className="relative space-y-4 border-l border-stone-200 pl-4">
+              {scheduled.map((task) => (
+                <li key={task.id}>
+                  <p className="text-[10px] font-bold text-stone-500">{task.time}</p>
+                  <p className={`mt-1 text-[12px] font-semibold ${task.done ? 'text-stone-400 line-through' : 'text-stone-700'}`}>
+                    {task.title}
+                  </p>
+                  <p className="text-[10px] text-stone-500">
+                    {task.duration} · {task.tag}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-[12px] leading-relaxed text-stone-500">
+              Tasks with a time show up here in order. {unscheduledCount ? `${unscheduledCount} task${unscheduledCount === 1 ? ' is' : 's are'} still unscheduled.` : ''}
+            </p>
+          )}
           <div className="mt-8 rounded-xl border border-violet-100 bg-violet-50 p-3.5">
             <div className="flex items-center gap-2 text-violet-800">
               <Lightbulb className="size-4" />
@@ -1688,13 +1887,16 @@ return (
               </p>
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-violet-800/80">
-              Your 4:00 PM task is flexible. Keep it unscheduled until after the
-              client call.
+              {openTasks.length > 3
+                ? `You have ${openTasks.length} open tasks. Ask which ones can safely wait.`
+                : 'Ask for help shaping today into something realistic.'}
             </p>
             <button
               onClick={() => {
                 setHelpPrompt(
-                  'Why is my afternoon overloaded, and what can I safely postpone?',
+                  openTasks.length > 3
+                    ? 'Which of my tasks today can I safely postpone?'
+                    : 'Help me plan a realistic day.',
                 );
                 setPandaOpen(true);
               }}
@@ -1711,7 +1913,7 @@ return (
           <div className="mx-auto my-5 w-full max-w-2xl rounded-3xl border border-stone-200 bg-[#fbfaf7] p-6 shadow-2xl sm:my-10 sm:p-8">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
                   Your calm starting point
                 </p>
                 <h2 className="mt-1 font-display text-2xl font-semibold tracking-[-0.04em]">
@@ -1720,6 +1922,23 @@ return (
                 <p className="mt-2 text-sm leading-relaxed text-stone-500">
                   Answer a few quick questions. Every other feature stays in
                   Settings until you want it.
+                </p>
+                <p className="mt-2 text-sm text-stone-600">
+                  Only here for DSA practice?{' '}
+                  <a
+                    href="#/dsa"
+                    onClick={() => {
+                      setShowSetup(false);
+                      try {
+                        window.localStorage.setItem('manageme:start', 'dsa');
+                      } catch {
+                        /* optional */
+                      }
+                    }}
+                    className="font-semibold text-blue-700 underline underline-offset-2"
+                  >
+                    Go straight to the DSA tracker
+                  </a>
                 </p>
               </div>
               {profile.onboardingCompleted && (
@@ -1757,7 +1976,7 @@ return (
                           : ['tasks', 'habit'],
                     );
                   }}
-                  className="mt-1.5 h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-normal outline-none focus:border-teal-400"
+                  className="mt-1.5 h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-normal outline-none focus:border-cyan-400"
                 >
                   <option>Personal life</option>
                   <option>Work</option>
@@ -1789,10 +2008,10 @@ return (
                               : [...items, feature],
                           )
                         }
-                        className={`flex items-center gap-3 rounded-xl border p-3 text-left ${selected ? 'border-teal-400 bg-teal-50' : 'border-stone-200 bg-white'}`}
+                        className={`flex items-center gap-3 rounded-xl border p-3 text-left ${selected ? 'border-cyan-400 bg-sky-50' : 'border-stone-200 bg-white'}`}
                       >
                         <span
-                          className={`grid size-5 place-items-center rounded-full border ${selected ? 'border-teal-600 bg-teal-600 text-white' : 'border-stone-300 text-transparent'}`}
+                          className={`grid size-5 place-items-center rounded-full border ${selected ? 'border-cyan-700 bg-cyan-700 text-white' : 'border-stone-300 text-transparent'}`}
                         >
                           <Check className="size-3" />
                         </span>
@@ -1835,7 +2054,7 @@ return (
             <div className="mt-7 flex justify-end">
               <Button
                 onClick={finishSetup}
-                className="bg-teal-700 hover:bg-teal-800"
+                className="bg-blue-700 hover:bg-blue-800"
               >
                 Create my layout <ArrowUpRight className="size-3.5" />
               </Button>
@@ -1847,7 +2066,7 @@ return (
         <div className="fixed inset-0 z-50 grid place-items-start bg-stone-900/15 px-4 pt-[12vh] backdrop-blur-sm">
           <div className="w-full max-w-xl rounded-2xl border border-stone-200 bg-white p-3 shadow-2xl">
             <div className="flex items-center gap-3 border-b border-stone-100 px-2 pb-3">
-              <Command className="size-4 text-teal-700" />
+              <Command className="size-4 text-blue-700" />
               <Input
                 autoFocus
                 value={quickAdd}
@@ -1872,7 +2091,7 @@ return (
               <Button
                 onClick={() => addTask(quickAdd)}
                 size="sm"
-                className="bg-teal-700 hover:bg-teal-800"
+                className="bg-blue-700 hover:bg-blue-800"
               >
                 Add to inbox
               </Button>
@@ -1884,14 +2103,14 @@ return (
       {showFocus && (
         <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#102c2b] p-4 text-white">
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <Dumbbell className="absolute -left-4 top-[18%] size-36 -rotate-12 text-teal-300/10" />
+            <Dumbbell className="absolute -left-4 top-[18%] size-36 -rotate-12 text-cyan-300/10" />
             <BookOpen className="absolute right-3 top-20 size-40 rotate-12 text-orange-200/10" />
-            <div className="absolute bottom-8 left-[20%] size-40 rounded-full bg-teal-400/10 blur-3xl" />
+            <div className="absolute bottom-8 left-[20%] size-40 rounded-full bg-cyan-400/10 blur-3xl" />
           </div>
           <div className="relative mx-auto flex min-h-[calc(100vh-2rem)] max-w-3xl flex-col justify-between">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[.18em] text-teal-200">
+                <p className="text-[10px] font-bold uppercase tracking-[.18em] text-sky-200">
                   Focus mode
                 </p>
                 <p className="mt-1 text-sm text-white/60">
@@ -1911,9 +2130,9 @@ return (
             </div>
             <div className="my-8 text-center">
               <div className="mx-auto grid size-24 place-items-center rounded-[2rem] border border-white/15 bg-white/10 shadow-2xl">
-                <TimerReset className="size-10 text-teal-200" />
+                <TimerReset className="size-10 text-sky-200" />
               </div>
-              <p className="mt-8 text-sm font-bold uppercase tracking-[.14em] text-teal-200">
+              <p className="mt-8 text-sm font-bold uppercase tracking-[.14em] text-sky-200">
                 {focusTask || 'Choose one task'}
               </p>
               <p className="mt-3 font-display text-7xl font-semibold tracking-[-.08em] sm:text-8xl">
@@ -1932,7 +2151,7 @@ return (
               </p>
               <button
                 onClick={() => setFocusQuote((index) => index + 1)}
-                className="mt-3 text-xs font-bold text-teal-200 hover:text-white"
+                className="mt-3 text-xs font-bold text-sky-200 hover:text-white"
               >
                 A fresh focus cue
               </button>
@@ -1966,7 +2185,7 @@ return (
                       setFocusRemaining(focusMinutes * 60);
                       setFocusRunning(false);
                     }}
-                    className="bg-teal-300 text-teal-950 hover:bg-teal-200"
+                    className="bg-cyan-300 text-blue-950 hover:bg-sky-200"
                   >
                     <RotateCcw className="size-4" /> Reset session
                   </Button>
@@ -1979,7 +2198,7 @@ return (
                           ? startFocus()
                           : setFocusRunning(true)
                     }
-                    className="bg-teal-300 text-teal-950 hover:bg-teal-200"
+                    className="bg-cyan-300 text-blue-950 hover:bg-sky-200"
                   >
                     {focusRunning ? (
                       <>
@@ -2093,7 +2312,7 @@ return (
               />
             </label>
             <div className="mt-4 rounded-lg bg-stone-50 p-3 text-[11px] leading-relaxed text-stone-500">
-              <KeyRound className="mr-1 inline size-3.5 text-teal-700" /> Your
+              <KeyRound className="mr-1 inline size-3.5 text-blue-700" /> Your
               key stays in this browser session only. It is not committed to Git
               or stored by ManageMe.
             </div>

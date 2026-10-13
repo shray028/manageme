@@ -167,11 +167,11 @@ function SignedIn({ user }: { user: AppUser }) {
   }, [listId]);
 
   const header = (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-5">
       {store.ready && <SaveStatus status={store.status} onRetry={store.retry} />}
 
-      <a className="dsa-text-btn inline-flex items-center" href="#/" onClick={() => rememberStart('workspace')}>
-        Full workspace
+      <a className="dsa-text-btn inline-flex items-center" href="#/" aria-label="Full workspace" onClick={() => rememberStart('workspace')}>
+        <span className="sm:hidden">Workspace</span><span className="hidden sm:inline">Full workspace</span>
       </a>
       <button
         type="button"

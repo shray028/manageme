@@ -519,3 +519,28 @@
 @media (prefers-reduced-motion: reduce) {
   .dsa-root .dsa-btn-primary, .dsa-root .dsa-sheet-card, .dsa-root .dsa-mini-check { transition: none; transform: none !important; }
 }
+
+/* Right-hand progress rail: same page background and card language as the main column. */
+.dsa-root .dsa-dashboard-rail { padding: 35px 0 26px 24px; background: transparent; }
+.dsa-root .dsa-dashboard-rail > .dsa-overline { margin-bottom: 12px; }
+.dsa-root .dsa-rail-card { padding: 18px; border: 1px solid rgb(23 34 58 / .07); border-radius: 14px; background: var(--dsa-surface); box-shadow: 0 1px 2px rgb(23 34 58 / .04), 0 4px 16px rgb(23 34 58 / .035); }
+.dsa-rail-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dsa-root .dsa-rail-card-label { margin: 0; color: var(--dsa-muted); font-family: inherit; font-size: 12px; font-weight: 650; }
+.dsa-rail-percent { padding: 2px 8px; border-radius: 999px; background: var(--dsa-brand-soft); color: var(--dsa-brand); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dsa-root .dsa-rail-card strong { margin-top: 10px; color: var(--dsa-ink); font-size: 34px; font-variant-numeric: tabular-nums; }
+.dsa-root .dsa-rail-card strong span { margin-left: 2px; color: var(--dsa-muted); font-family: inherit; font-size: 14px; }
+.dsa-root .dsa-rail-card .dsa-progress { height: 6px; margin-top: 14px; }
+.dsa-root .dsa-rail-card > p:last-child { margin-top: 12px; color: var(--dsa-muted); font-size: 11.5px; line-height: 1.5; }
+.dsa-root .dsa-rail-tip { align-items: flex-start; gap: 11px; margin-top: 12px; padding: 14px; border: 1px solid rgb(23 34 58 / .07); border-radius: 14px; background: var(--dsa-surface); box-shadow: 0 1px 2px rgb(23 34 58 / .04); }
+.dsa-rail-tip-icon { display: grid; flex: none; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--dsa-brand-soft); color: var(--dsa-brand); }
+.dsa-root .dsa-rail-tip strong { color: var(--dsa-ink); font-size: 12px; }
+.dsa-root .dsa-rail-tip p { margin-top: 3px; color: var(--dsa-muted); font-size: 11.5px; line-height: 1.5; }
+.dsa-root .dsa-dashboard-nav { padding-top: 35px; }
+.dsa-root[data-theme="dark"] .dsa-dashboard-rail { background: transparent; }
+.dsa-root[data-theme="dark"] .dsa-rail-card, .dsa-root[data-theme="dark"] .dsa-rail-tip { border-color: var(--dsa-line); background: var(--dsa-surface); box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+.dsa-root[data-theme="dark"] .dsa-rail-tip strong { color: var(--dsa-ink); }
+.dsa-root[data-theme="dark"] .dsa-rail-tip p { color: var(--dsa-muted); }
+.dsa-root[data-theme="dark"] .dsa-rail-percent, .dsa-root[data-theme="dark"] .dsa-rail-tip-icon { background: var(--dsa-brand-soft); color: #c6d5ff; }
+@media (max-width: 800px) { .dsa-root .dsa-dashboard-rail { padding: 18px 0 45px; } .dsa-root .dsa-rail-tip { margin: 0; } }
+.dsa-root .dsa-rail-card strong span { font-family: Figtree, ui-sans-serif, system-ui, sans-serif; font-weight: 600; }
+.dsa-root .dsa-rail-tip .dsa-rail-tip-icon svg { color: inherit; }

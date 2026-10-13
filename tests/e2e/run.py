@@ -9,6 +9,7 @@ Usage:  python3 tests/e2e/run.py            (starts the dev server itself if nee
 Needs:  pip install playwright && playwright install chromium   (or set CHROMIUM_PATH)
 """
 import json
+import re
 import os
 import subprocess
 import sys
@@ -72,12 +73,23 @@ def start_sheet(page: Page, index: int):
 
 
 def row(page: Page, title: str):
-    return page.get_by_test_id('problem-row').filter(has=page.get_by_text(title, exact=True)).first
+    """A problem in the left-hand list."""
+    return page.get_by_test_id('problem-item').filter(has=page.get_by_text(title, exact=True)).first
+
+
+def tick(page: Page, title: str, which='Done'):
+    """Tick Done/Revised straight from the left-hand list."""
+    box = row(page, title).get_by_role('checkbox', name=f'{which}: {title}')
+    if box.get_attribute('aria-checked') != 'true':
+        box.click()
+    expect(box).to_have_attribute('aria-checked', 'true')
 
 
 def open_row(page: Page, title: str):
-    r = row(page, title)
-    r.get_by_role('button', name=f'Open notes for {title}').click()
+    """Open a problem in the centre workspace and return it."""
+    row(page, title).locator('.dsa-item-main').click()
+    r = page.get_by_test_id('problem-detail')
+    expect(r.get_by_role('heading', level=1)).to_contain_text(title)
     expect(r.get_by_test_id('code-editor')).to_be_visible(timeout=10000)
     return r
 
@@ -103,18 +115,17 @@ def first_visit_shows_simple_dsa_start(page: Page):
 def everything_written_on_a_problem_survives_a_reload(page: Page):
     sign_in(page)
     start_sheet(page, 1)  # Striver
-    expect(page.get_by_text('0 of 179 done', exact=False)).to_be_visible()
-    r = row(page, 'Majority Element-I')
-    r.get_by_label('Done').check()
-    r.get_by_label('Revised', exact=True).check()
+    expect(page.get_by_role('progressbar', name='Problems done').and_(page.locator('[aria-valuetext=\"0 of 179 done\"]'))).to_be_visible()
+    tick(page, 'Majority Element-I', 'Done')
     r = open_row(page, 'Majority Element-I')
+    r.get_by_role('checkbox', name='Revised', exact=True).click()
     # Default reference link from the sheet
     expect(r.get_by_role('link', name="Striver's video explanation")).to_have_attribute('href', 'https://youtu.be/nP_ns3uSh80')
     type_code(page, r, 'def majority(nums):\nreturn max(nums)')
     r.get_by_label('When I solved it').fill('Moore voting: keep a candidate and a count.')
     r.get_by_label('When I revised it').fill('Forgot to reset the candidate when count hits 0.')
     r.get_by_label('Mistake to remember').fill('Reset candidate when count == 0')
-    r.get_by_label('On my weak list').check()
+    r.get_by_role('button', name='Add to weak list').click()
     r.get_by_placeholder('Name (optional)').fill('NeetCode explanation')
     r.get_by_placeholder('https://…').fill('https://www.youtube.com/watch?v=7pnhv842keE')
     r.get_by_role('button', name='Add link').click()
@@ -130,12 +141,12 @@ def everything_written_on_a_problem_survives_a_reload(page: Page):
 
     page.reload()
     r = open_row(page, 'Majority Element-I')
-    expect(r.get_by_label('Done')).to_be_checked()
-    expect(r.get_by_label('Revised', exact=True)).to_be_checked()
+    expect(r.get_by_role('checkbox', name='Done', exact=True)).to_have_attribute('aria-checked', 'true')
+    expect(r.get_by_role('checkbox', name='Revised', exact=True)).to_have_attribute('aria-checked', 'true')
     expect(r.locator('.cm-content')).to_contain_text('return max(nums)')
     expect(r.get_by_label('Mistake to remember')).to_have_value('Reset candidate when count == 0')
     expect(r.get_by_role('link', name='NeetCode explanation')).to_be_visible()
-    expect(page.get_by_text('1 of 179 done', exact=False)).to_be_visible()
+    expect(page.get_by_role('progressbar', name='Problems done').and_(page.locator('[aria-valuetext=\"1 of 179 done\"]'))).to_be_visible()
     page.screenshot(path=str(SHOTS / 'problem-open.png'))
 
 
@@ -147,7 +158,7 @@ def server_outage_never_loses_notes_even_across_reload(page: Page):
     set_mode(page, 'fail', persist=True)
     r = open_row(page, 'Two Sum')
     r.get_by_label('When I solved it').fill('Hash map of value -> index. One pass.')
-    r.get_by_label('Done').check()
+    r.get_by_role('checkbox', name='Done', exact=True).click()
     expect(page.get_by_test_id('save-status')).to_have_attribute('data-state', 'retrying', timeout=10000)
     expect(page.get_by_text('Not saved yet')).to_be_visible()
     assert 'completedNote' not in server_doc(page, 'dsaProgress', 'two-sum')
@@ -158,12 +169,11 @@ def server_outage_never_loses_notes_even_across_reload(page: Page):
     page.reload()
     r = open_row(page, 'Two Sum')
     expect(r.get_by_label('When I solved it')).to_have_value('Hash map of value -> index. One pass.')
-    expect(r.get_by_label('Done')).to_be_checked()
+    expect(r.get_by_role('checkbox', name='Done', exact=True)).to_have_attribute('aria-checked', 'true')
 
-    # Server comes back: everything reaches it.
+    # Server comes back: automatic retries deliver everything without anyone pressing a button.
     set_mode(page, 'ok')
-    page.get_by_role('button', name='Retry now').click()
-    wait_saved(page)
+    wait_saved(page, timeout=30000)
     saved = server_doc(page, 'dsaProgress', 'two-sum')
     assert saved['completedNote'] == 'Hash map of value -> index. One pass.', saved
     assert saved['completed'] is True
@@ -180,7 +190,7 @@ def permission_denied_is_explained_and_data_kept(page: Page):
     r = open_row(page, 'Plus One')
     r.get_by_label('Mistake to remember').fill('Carry at the front: [9,9] -> [1,0,0]')
     expect(page.get_by_test_id('save-status')).to_have_attribute('data-state', 'blocked', timeout=10000)
-    expect(page.get_by_text('permission denied', exact=False)).to_be_visible()
+    expect(page.get_by_test_id('save-status')).to_have_attribute('title', re.compile('permission denied'))
     stored = page.evaluate("Object.entries(localStorage).filter(([k]) => k.startsWith('manageme:dsa:journal')).map(([,v]) => v).join('')")
     assert 'Carry at the front' in stored
     set_mode(page, 'ok')
@@ -193,8 +203,7 @@ def permission_denied_is_explained_and_data_kept(page: Page):
 def failed_load_never_shows_or_saves_empty_data(page: Page):
     sign_in(page)
     start_sheet(page, 0)
-    r = row(page, 'Two Sum')
-    r.get_by_label('Done').check()
+    tick(page, 'Two Sum')
     wait_saved(page)
     before = server_docs(page)
     set_mode(page, 'fail-load', persist=True)
@@ -203,7 +212,7 @@ def failed_load_never_shows_or_saves_empty_data(page: Page):
     assert server_docs(page) == before
     set_mode(page, 'ok')
     page.get_by_role('button', name='Try again').click()
-    expect(page.get_by_text('1 of 48 done', exact=False)).to_be_visible()
+    expect(page.get_by_role('progressbar', name='Problems done').and_(page.locator('[aria-valuetext=\"1 of 48 done\"]'))).to_be_visible()
 
 
 @test
@@ -227,8 +236,8 @@ def add_problems_by_name_and_by_leetcode_link(page: Page):
     page.get_by_role('button', name='Add problem').click()
     expect(page.get_by_text('Added “Count distinct elements in every window”.')).to_be_visible()
     wait_saved(page)
-    r = row(page, 'Count distinct elements in every window')
-    expect(r.get_by_role('link', name='Open Count distinct elements in every window (new tab)')).to_have_attribute(
+    r = open_row(page, 'Count distinct elements in every window')
+    expect(r.get_by_role('link', name='Open problem')).to_have_attribute(
         'href', 'https://www.geeksforgeeks.org/count-distinct-elements-in-every-window-of-size-k/'
     )
     lists = {k: v for k, v in server_docs(page).items() if '/dsaLists/' in k}
@@ -257,7 +266,7 @@ def import_the_leetcode_link_from_the_study_group(page: Page):
     sign_in(page)
     page.get_by_label('LeetCode list link').fill('https://leetcode.com/explore/interview/card/top-interview-questions-easy/')
     page.get_by_role('button', name='Import list').click()
-    expect(page.get_by_text('0 of 48 done', exact=False)).to_be_visible()
+    expect(page.get_by_role('progressbar', name='Problems done').and_(page.locator('[aria-valuetext=\"0 of 48 done\"]'))).to_be_visible()
     expect(page.get_by_role('button', name='Array', exact=False).first).to_be_visible()
     page.get_by_label('Group by').select_option('difficulty')
     expect(page.locator('.dsa-group-head').first).to_contain_text('Easy')
@@ -280,8 +289,8 @@ def paste_links_to_create_a_list(page: Page):
     )
     page.on('dialog', lambda d: d.accept())
     page.get_by_role('button', name='Create list from links').click()
-    expect(page.get_by_role('heading', name='Study group week 1')).to_be_visible(timeout=60000)
-    expect(page.get_by_test_id('problem-row')).to_have_count(2)
+    expect(page.get_by_role('heading', name='Study group week 1').first).to_be_visible(timeout=60000)
+    expect(page.get_by_test_id('problem-item')).to_have_count(2)
     expect(row(page, 'Two Sum')).to_be_visible()
     expect(row(page, 'Valid Anagram')).to_be_visible()
 
@@ -290,11 +299,11 @@ def paste_links_to_create_a_list(page: Page):
 def progress_is_shared_between_lists_for_the_same_problem(page: Page):
     sign_in(page)
     start_sheet(page, 0)
-    row(page, 'Two Sum').get_by_label('Done').check()
+    tick(page, 'Two Sum')
     wait_saved(page)
     page.get_by_role('button', name='All lists').click()
     start_sheet(page, 1)
-    expect(row(page, 'Two Sum').get_by_label('Done')).to_be_checked()
+    expect(row(page, 'Two Sum').get_by_role('checkbox', name='Done: Two Sum')).to_have_attribute('aria-checked', 'true')
 
 
 @test
@@ -326,8 +335,8 @@ def removing_things_never_deletes_notes(page: Page):
 def filters_find_weak_list_and_due_revisions(page: Page):
     sign_in(page)
     start_sheet(page, 0)
-    row(page, 'Single Number').get_by_role('button', name='Add Single Number to weak list').click()
-    row(page, 'Move Zeroes').get_by_label('Done').check()
+    open_row(page, 'Single Number').get_by_role('button', name='Add to weak list').click()
+    tick(page, 'Move Zeroes')
     wait_saved(page)
     # Make Move Zeroes look like it was solved three days ago.
     page.evaluate(
@@ -337,14 +346,14 @@ def filters_find_weak_list_and_due_revisions(page: Page):
     )
     page.reload()
     page.get_by_role('button', name='Weak list (1)').click()
-    expect(page.get_by_test_id('problem-row')).to_have_count(1)
+    expect(page.get_by_test_id('problem-item')).to_have_count(1)
     expect(row(page, 'Single Number')).to_be_visible()
-    page.get_by_role('button', name='Due for revision (1)').click()
-    expect(page.get_by_test_id('problem-row')).to_have_count(1)
-    expect(row(page, 'Move Zeroes')).to_contain_text('Due for revision')
+    page.get_by_role('button', name='Due (1)').click()
+    expect(page.get_by_test_id('problem-item')).to_have_count(1)
+    expect(row(page, 'Move Zeroes')).to_contain_text('Due')
     page.get_by_role('button', name='All', exact=True).click()
     page.get_by_label('Search problems and notes').fill('anagram')
-    expect(page.get_by_test_id('problem-row')).to_have_count(1)
+    expect(page.get_by_test_id('problem-item')).to_have_count(1)
 
 
 @test
@@ -409,7 +418,7 @@ def two_tabs_editing_different_fields_do_not_overwrite_each_other(page: Page):
     url = page.url
     other = page.context.new_page()
     other.goto(url)
-    expect(other.get_by_text('0 of 48 done', exact=False)).to_be_visible()
+    expect(other.get_by_role('progressbar', name='Problems done').and_(other.locator('[aria-valuetext=\"0 of 48 done\"]'))).to_be_visible()
     a = open_row(page, 'Valid Sudoku')
     b = open_row(other, 'Valid Sudoku')
     a.get_by_label('When I solved it').fill('Three sets: rows, cols, boxes.')
@@ -426,13 +435,13 @@ def two_tabs_editing_different_fields_do_not_overwrite_each_other(page: Page):
 def keyboard_only_use(page: Page):
     sign_in(page)
     start_sheet(page, 0)
-    done = row(page, 'Two Sum').get_by_label('Done')
+    done = row(page, 'Two Sum').get_by_role('checkbox', name='Done: Two Sum')
     done.focus()
     page.keyboard.press('Space')
-    expect(done).to_be_checked()
-    r = row(page, 'Two Sum')
-    r.get_by_role('button', name='Open notes for Two Sum').focus()
+    expect(done).to_have_attribute('aria-checked', 'true')
+    row(page, 'Two Sum').locator('.dsa-item-main').focus()
     page.keyboard.press('Enter')
+    r = page.get_by_test_id('problem-detail')
     expect(r.get_by_test_id('code-editor')).to_be_visible()
     r.locator('.cm-content').focus()
     page.keyboard.type('x = 1')
@@ -470,10 +479,16 @@ def phone_layout(page: Page):
     page.set_viewport_size({'width': 390, 'height': 844})
     sign_in(page)
     start_sheet(page, 1)
+    page.screenshot(path=str(SHOTS / 'phone-list.png'))
     open_row(page, 'Majority Element-I')
+    # On a phone the list and the problem are separate screens.
+    expect(page.get_by_role('navigation', name='Problem list')).to_be_hidden()
+    expect(page.get_by_role('button', name='All problems')).to_be_visible()
     overflow = page.evaluate('document.documentElement.scrollWidth > window.innerWidth + 1')
     page.screenshot(path=str(SHOTS / 'phone.png'))
-    assert not overflow, 'Page scrolls sideways on a phone'
+    assert not overflow
+    page.get_by_role('button', name='All problems').click()
+    expect(page.get_by_role('navigation', name='Problem list')).to_be_visible(), 'Page scrolls sideways on a phone'
 
 
 @test

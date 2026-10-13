@@ -1,6 +1,10 @@
-import { AlertTriangle, Check, CloudOff, Loader2, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Check, CloudOff, HardDrive, Loader2, ShieldAlert } from 'lucide-react';
 import type { SyncStatus } from '@/lib/dsa/sync';
 
+/**
+ * One line, fixed height, so the page never jumps while someone is clicking.
+ * The full explanation is available on hover and to screen readers.
+ */
 export function SaveStatus({ status, onRetry }: { status: SyncStatus; onRetry: () => void }) {
   const { state, unsaved, message, deviceBackup } = status;
   let icon = <Check className="size-4" aria-hidden />;
@@ -16,7 +20,7 @@ export function SaveStatus({ status, onRetry }: { status: SyncStatus; onRetry: (
     tone = 'text-[var(--dsa-warn)]';
   } else if (state === 'retrying') {
     icon = <AlertTriangle className="size-4" aria-hidden />;
-    text = `Not saved yet · retrying`;
+    text = 'Not saved yet · retrying';
     tone = 'text-[var(--dsa-warn)]';
   } else if (state === 'blocked') {
     icon = <ShieldAlert className="size-4" aria-hidden />;
@@ -27,21 +31,32 @@ export function SaveStatus({ status, onRetry }: { status: SyncStatus; onRetry: (
   }
   const problem = state === 'retrying' || state === 'offline' || state === 'blocked';
   return (
-    <div className="flex flex-col items-end gap-1 text-right">
-      <p role="status" aria-live="polite" className={`flex items-center gap-1.5 text-sm font-semibold ${tone}`} data-testid="save-status" data-state={state}>
+    <div className="flex h-9 items-center gap-2 whitespace-nowrap">
+      <p
+        role="status"
+        aria-live="polite"
+        className={`flex items-center gap-1.5 text-sm font-semibold ${tone}`}
+        data-testid="save-status"
+        data-state={state}
+        title={problem ? message : undefined}
+      >
         {icon}
         {text}
+        {problem && <span className="sr-only">. {message}</span>}
       </p>
       {problem && (
-        <div className="flex max-w-sm items-start gap-2 text-sm text-[var(--dsa-ink)]">
-          <span>{message}</span>
-          <button type="button" onClick={onRetry} className="dsa-btn-secondary shrink-0 !px-2 !py-1">
-            Retry now
-          </button>
-        </div>
+        <button type="button" onClick={onRetry} className="dsa-btn-secondary !min-h-8 !px-2.5 !py-1 text-sm">
+          Retry now
+        </button>
       )}
       {!deviceBackup && (
-        <p className="max-w-sm text-sm text-[var(--dsa-warn)]">This browser isn’t allowing a backup copy on this device, so keep this tab open until changes show as saved.</p>
+        <span
+          className="flex items-center gap-1 text-sm font-semibold text-[var(--dsa-warn)]"
+          title="This browser isn’t allowing a backup copy on this device, so keep this tab open until changes show as saved."
+        >
+          <HardDrive className="size-4" aria-hidden /> No device backup
+          <span className="sr-only">: this browser isn’t allowing a backup copy on this device, so keep this tab open until changes show as saved.</span>
+        </span>
       )}
     </div>
   );

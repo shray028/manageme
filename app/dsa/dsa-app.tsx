@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LogIn, LogOut, Moon, Sun } from 'lucide-react';
+import { LogIn, LogOut } from 'lucide-react';
 import { signIn, signOut, useAppUser, type AppUser } from '@/lib/dsa/auth';
 import { toList } from '@/lib/dsa/model';
 import type { DsaList } from '@/lib/dsa/types';
@@ -27,14 +27,14 @@ export default function DsaApp() {
   return <SignedIn key={user.uid} user={user} />;
 }
 
-function Shell({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
+function Shell({ children, header, wide = false }: { children: React.ReactNode; header?: React.ReactNode; wide?: boolean }) {
   return (
-    <div className="dsa-root">
+    <div className={`dsa-root ${wide ? 'is-wide' : ''}`}>
       <a href="#dsa-main" className="dsa-skip">
         Skip to content
       </a>
       <header className="dsa-topbar">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className={`mx-auto flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6 ${wide ? '' : 'max-w-6xl'}`}>
           <a href="#/dsa" className="flex items-center gap-2.5 no-underline" aria-label="ManageMe DSA home">
             <span className="grid size-9 place-items-center rounded-lg bg-[var(--dsa-brand)] text-lg font-bold text-white" aria-hidden>
               m
@@ -44,7 +44,7 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
           {header}
         </div>
       </header>
-      <main id="dsa-main" className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <main id="dsa-main" className={wide ? 'dsa-wide-main' : 'mx-auto max-w-6xl px-4 py-8 sm:px-6'}>
         {children}
       </main>
     </div>
@@ -121,7 +121,8 @@ export function rememberStart(mode: 'dsa' | 'workspace') {
 function useDarkEditor(): [boolean, () => void] {
   const [dark, setDark] = useState(() => {
     try {
-      return localStorage.getItem('manageme:dsa:dark-editor') === '1';
+      // LeetCode-style dark editor by default; people can switch to light.
+      return localStorage.getItem('manageme:dsa:dark-editor') !== '0';
     } catch {
       return false;
     }
@@ -157,7 +158,9 @@ function SignedIn({ user }: { user: AppUser }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.version]);
 
-  const listId = route.startsWith('/dsa/list/') ? decodeURIComponent(route.slice('/dsa/list/'.length)) : null;
+  const [rawListId, rawProblemKey] = route.startsWith('/dsa/list/') ? route.slice('/dsa/list/'.length).split('/') : [];
+  const listId = rawListId ? decodeURIComponent(rawListId) : null;
+  const problemKey = rawProblemKey ? decodeURIComponent(rawProblemKey) : null;
   const activeList = listId ? [...lists, ...archived].find((list) => list.id === listId) : undefined;
 
   useEffect(() => {
@@ -167,10 +170,7 @@ function SignedIn({ user }: { user: AppUser }) {
   const header = (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
       {store.ready && <SaveStatus status={store.status} onRetry={store.retry} />}
-      <button type="button" className="dsa-text-btn inline-flex items-center gap-1.5" onClick={toggleDark} aria-pressed={darkEditor}>
-        {darkEditor ? <Sun className="size-4" aria-hidden /> : <Moon className="size-4" aria-hidden />}
-        {darkEditor ? 'Light code editor' : 'Dark code editor'}
-      </button>
+
       <a className="dsa-text-btn inline-flex items-center" href="#/" onClick={() => rememberStart('workspace')}>
         Full workspace
       </a>
@@ -211,9 +211,18 @@ function SignedIn({ user }: { user: AppUser }) {
     );
 
   return (
-    <Shell header={header}>
+    <Shell header={header} wide={Boolean(listId && activeList)}>
       {listId && activeList ? (
-        <ListView key={activeList.id} list={activeList} store={store} darkEditor={darkEditor} onBack={() => navigate('/dsa')} />
+        <ListView
+          key={activeList.id}
+          list={activeList}
+          store={store}
+          selectedKey={problemKey}
+          darkEditor={darkEditor}
+          onToggleDark={toggleDark}
+          onSelect={(key) => navigate(`/dsa/list/${encodeURIComponent(activeList.id)}${key ? `/${encodeURIComponent(key)}` : ''}`)}
+          onBack={() => navigate('/dsa')}
+        />
       ) : listId ? (
         <div className="dsa-panel">
           <p className="font-semibold">That list doesn’t exist in your account.</p>

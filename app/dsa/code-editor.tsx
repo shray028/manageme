@@ -34,11 +34,12 @@ const languageExtension = (language: Language) => {
 const indentFor = (language: Language) => (language === 'go' ? '\t' : language === 'python' || language === 'text' ? '    ' : '    ');
 
 const baseTheme = EditorView.theme({
-  '&': { fontSize: '15px', borderRadius: '10px', minHeight: '220px' },
-  '.cm-scroller': { fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", lineHeight: '1.6', minHeight: '220px' },
-  '.cm-content': { padding: '12px 0' },
-  '&.cm-focused': { outline: '3px solid var(--dsa-focus)', outlineOffset: '2px' },
-  '.cm-gutters': { borderRight: 'none' },
+  '&': { fontSize: '15px', minHeight: 'min(62vh, 640px)', maxHeight: '80vh' },
+  '.cm-scroller': { fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", lineHeight: '1.65', minHeight: 'min(62vh, 640px)' },
+  '.cm-content': { padding: '14px 0' },
+  '&.cm-focused': { outline: 'none' },
+  '.cm-gutters': { borderRight: 'none', paddingLeft: '6px' },
+  '.cm-lineNumbers .cm-gutterElement': { padding: '0 10px 0 6px' },
 });
 
 type Props = {
@@ -124,5 +125,5 @@ export default function CodeEditor({ value, language, dark, label, onChange, onB
     current.dispatch({ changes: { from: 0, to: existing.length, insert: value } });
   }, [value]);
 
-  return <div ref={host} className="dsa-editor" data-testid="code-editor" />;
+  return <div ref={host} className={`dsa-editor ${dark ? 'is-dark' : ''}`} data-testid="code-editor" />;
 }

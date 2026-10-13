@@ -435,3 +435,87 @@
 .dsa-root[data-theme="dark"] .dsa-btn-primary:hover { background: #2e4dcc; }
 .dsa-root[data-theme="dark"] .dsa-dialog { border: 1px solid var(--dsa-line); background: var(--dsa-surface); color: var(--dsa-ink); }
 @media (max-width: 800px) { .dsa-root[data-theme="dark"] .dsa-dashboard-rail { background: transparent; } }
+
+/* ---------------------------------------------------------------------------------------------
+   Refined controls: a quieter, more premium feel. Smaller, softer controls; one accent colour;
+   depth from subtle shadows rather than heavy borders. Touch targets stay large on phones.
+   --------------------------------------------------------------------------------------------- */
+.dsa-root { --dsa-ease: cubic-bezier(.2, .7, .2, 1); --dsa-ring: 0 0 0 3px rgb(48 84 233 / .14); }
+
+/* Segmented filter: one track, the chosen option raised. */
+.dsa-segmented { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: #eaeff8; box-shadow: inset 0 0 0 1px rgb(23 34 58 / .04); overflow-x: auto; scrollbar-width: none; }
+.dsa-segmented::-webkit-scrollbar { display: none; }
+.dsa-seg { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 28px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #56647a; font-size: 11.5px; font-weight: 650; letter-spacing: .005em; white-space: nowrap; cursor: pointer; transition: background .18s var(--dsa-ease), color .18s var(--dsa-ease), box-shadow .18s var(--dsa-ease); }
+.dsa-seg:hover { color: var(--dsa-ink); }
+.dsa-seg.is-on { background: var(--dsa-surface); color: var(--dsa-ink); box-shadow: 0 1px 2px rgb(23 34 58 / .1), 0 1px 1px rgb(23 34 58 / .04); }
+.dsa-seg-count { min-width: 16px; padding: 0 4px; border-radius: 999px; background: rgb(48 84 233 / .12); color: var(--dsa-brand); font-size: 10px; line-height: 16px; text-align: center; }
+
+/* Group-by: a small inline control rather than a full-size select. */
+.dsa-groupby { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; color: var(--dsa-muted); font-size: 11.5px; font-weight: 600; }
+.dsa-select-sm { appearance: none; min-height: 28px; padding: 0 26px 0 10px; border: 1px solid var(--dsa-line); border-radius: 8px; background: var(--dsa-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%2359677d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 9px center; color: var(--dsa-ink); font-size: 12px; font-weight: 600; cursor: pointer; transition: border-color .15s var(--dsa-ease); }
+.dsa-select-sm:hover { border-color: var(--dsa-line-strong); }
+
+/* Search: compact, filled, sharpens on focus. */
+.dsa-root .dsa-search { min-height: 34px; padding-top: 6px; padding-bottom: 6px; border-color: transparent; background: #eef2f9; font-size: 13px; transition: background .18s var(--dsa-ease), border-color .18s var(--dsa-ease), box-shadow .18s var(--dsa-ease); }
+.dsa-root .dsa-search:hover { border-color: var(--dsa-line); }
+.dsa-root .dsa-search:focus { border-color: #9fb3ef; background: var(--dsa-surface); box-shadow: var(--dsa-ring); }
+
+/* Inputs and selects everywhere: slimmer, with a soft focus ring. */
+.dsa-root .dsa-input, .dsa-root .dsa-select { min-height: 36px; border-radius: 9px; transition: border-color .15s var(--dsa-ease), box-shadow .15s var(--dsa-ease); }
+.dsa-root .dsa-input:focus, .dsa-root .dsa-select:focus { border-color: #9fb3ef; box-shadow: var(--dsa-ring); }
+
+/* Buttons: one compact size, gentle lift on hover. */
+.dsa-root .dsa-btn-primary, .dsa-root .dsa-btn-secondary, .dsa-root .dsa-btn-ghost { min-height: 34px; padding: 6px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 650; letter-spacing: .005em; transition: background .16s var(--dsa-ease), border-color .16s var(--dsa-ease), box-shadow .16s var(--dsa-ease), transform .16s var(--dsa-ease); }
+.dsa-root .dsa-btn-primary { background: linear-gradient(180deg, #3a5ef0, #2c4fe0); box-shadow: 0 1px 2px rgb(30 55 160 / .25), inset 0 1px 0 rgb(255 255 255 / .12); }
+.dsa-root .dsa-btn-primary:hover:not(:disabled) { background: linear-gradient(180deg, #3155e6, #2445cf); box-shadow: 0 3px 10px rgb(44 79 224 / .25); transform: translateY(-1px); }
+.dsa-root .dsa-btn-secondary { border: 1px solid var(--dsa-line); background: var(--dsa-surface); color: var(--dsa-ink); box-shadow: 0 1px 2px rgb(23 34 58 / .05); }
+.dsa-root .dsa-btn-secondary:hover:not(:disabled) { border-color: var(--dsa-line-strong); box-shadow: 0 2px 6px rgb(23 34 58 / .07); }
+.dsa-root .dsa-btn-ghost { border: 1px solid transparent; background: transparent; color: var(--dsa-muted); }
+.dsa-root .dsa-btn-ghost:hover:not(:disabled) { background: var(--dsa-soft); color: var(--dsa-ink); }
+.dsa-root .dsa-theme-toggle { min-height: 34px; padding: 6px 10px; border-radius: 8px; box-shadow: 0 1px 2px rgb(23 34 58 / .05); }
+
+/* Status toggles on a problem (Done / Revised / Weak): pill-shaped and lighter. */
+.dsa-root .dsa-toggle { min-height: 34px; padding: 5px 12px 5px 7px; border-radius: 999px; font-size: 12px; transition: background .16s var(--dsa-ease), border-color .16s var(--dsa-ease); }
+
+/* Sidebar rows: the Revise action stays quiet until you need it. */
+.dsa-root .dsa-revise-pill { height: 22px; padding: 0 8px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: #586579; font-size: 10.5px; font-weight: 650; transition: opacity .15s var(--dsa-ease), background .15s var(--dsa-ease), border-color .15s var(--dsa-ease); }
+.dsa-root .dsa-item:hover .dsa-revise-pill, .dsa-root .dsa-item.is-active .dsa-revise-pill, .dsa-root .dsa-revise-pill:focus-visible { border-color: var(--dsa-line); background: var(--dsa-surface); }
+.dsa-root .dsa-revise-pill.is-on { border-color: transparent; background: #e3f5f7; color: #076f80; }
+.dsa-root .dsa-item { transition: background .14s var(--dsa-ease); }
+.dsa-root .dsa-item:hover:not(.is-active) { background: rgb(48 84 233 / .04); }
+.dsa-root .dsa-mini-check { transition: background .15s var(--dsa-ease), border-color .15s var(--dsa-ease), transform .15s var(--dsa-ease); }
+.dsa-root .dsa-mini-check:active { transform: scale(.9); }
+.dsa-root .dsa-sidebar-foot .dsa-btn-secondary { border-style: dashed; box-shadow: none; color: var(--dsa-muted); }
+.dsa-root .dsa-sidebar-foot .dsa-btn-secondary:hover { border-style: solid; color: var(--dsa-ink); }
+
+/* Cards: hairline borders and soft, layered depth. */
+.dsa-root .dsa-panel, .dsa-root .dsa-card, .dsa-root .dsa-rail-card { border-color: rgb(23 34 58 / .07); box-shadow: 0 1px 2px rgb(23 34 58 / .04), 0 4px 16px rgb(23 34 58 / .035); }
+.dsa-root .dsa-sheet-card { transition: box-shadow .2s var(--dsa-ease), transform .2s var(--dsa-ease); }
+.dsa-root .dsa-sheet-card:hover { box-shadow: 0 2px 4px rgb(23 34 58 / .05), 0 12px 28px rgb(23 34 58 / .07); transform: translateY(-1px); }
+
+/* Dark theme counterparts. */
+.dsa-root[data-theme="dark"] { --dsa-ring: 0 0 0 3px rgb(120 150 255 / .22); }
+.dsa-root[data-theme="dark"] .dsa-segmented { background: #14203a; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .05); }
+.dsa-root[data-theme="dark"] .dsa-seg { color: #a9b9d1; }
+.dsa-root[data-theme="dark"] .dsa-seg:hover { color: #e8efff; }
+.dsa-root[data-theme="dark"] .dsa-seg.is-on { background: #2a3b5f; color: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .3); }
+.dsa-root[data-theme="dark"] .dsa-seg-count { background: rgb(120 150 255 / .2); color: #c9d6ff; }
+.dsa-root[data-theme="dark"] .dsa-select-sm { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23b7c7db' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E"); }
+.dsa-root[data-theme="dark"] .dsa-search { background: #14203a; }
+.dsa-root[data-theme="dark"] .dsa-search:focus { background: var(--dsa-surface); border-color: #6584ef; }
+.dsa-root[data-theme="dark"] .dsa-btn-primary { background: linear-gradient(180deg, #4466ec, #3557e0); }
+.dsa-root[data-theme="dark"] .dsa-btn-secondary { box-shadow: none; }
+.dsa-root[data-theme="dark"] .dsa-revise-pill { color: #a9b9d1; }
+.dsa-root[data-theme="dark"] .dsa-revise-pill.is-on { background: #1e434c; color: #c9f4f7; }
+.dsa-root[data-theme="dark"] .dsa-item:hover:not(.is-active) { background: rgb(255 255 255 / .03); }
+.dsa-root[data-theme="dark"] .dsa-panel, .dsa-root[data-theme="dark"] .dsa-card, .dsa-root[data-theme="dark"] .dsa-rail-card { border-color: var(--dsa-line); box-shadow: 0 1px 2px rgb(0 0 0 / .2); }
+
+/* Phones: keep comfortable touch targets. */
+@media (max-width: 800px) {
+  .dsa-seg, .dsa-select-sm { min-height: 40px; }
+  .dsa-root .dsa-btn-primary, .dsa-root .dsa-btn-secondary, .dsa-root .dsa-btn-ghost, .dsa-root .dsa-toggle, .dsa-root .dsa-theme-toggle { min-height: 44px; }
+  .dsa-root .dsa-revise-pill { height: 30px; border-color: var(--dsa-line); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dsa-root .dsa-btn-primary, .dsa-root .dsa-sheet-card, .dsa-root .dsa-mini-check { transition: none; transform: none !important; }
+}

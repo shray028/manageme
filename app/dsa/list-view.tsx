@@ -109,7 +109,9 @@ export function ListView({ list, store, selectedKey, darkEditor, onToggleDark, o
         problem.group.toLowerCase().includes(needle) ||
         (problem.subgroup ?? '').toLowerCase().includes(needle) ||
         progress.mistake.toLowerCase().includes(needle) ||
-        progress.completedNote.toLowerCase().includes(needle)
+        progress.completedNote.toLowerCase().includes(needle) ||
+        progress.revisedNote.toLowerCase().includes(needle) ||
+        progress.textNotes.toLowerCase().includes(needle)
       );
     });
   }, [problems, progressMap, prefs.filter, query, now]);

@@ -64,6 +64,12 @@ export function HistoryDialog({ title, load, onRestore, onClose }: Props) {
               </button>
             </div>
             {typeof entry.data.code === 'string' && entry.data.code && <pre className="dsa-pre mt-2">{entry.data.code.slice(0, 1200)}</pre>}
+            {typeof entry.data.textNotes === 'string' && entry.data.textNotes && entry.data.textNotes !== entry.data.code && (
+              <>
+                <p className="mt-2 text-sm font-semibold">Plain text notes:</p>
+                <pre className="dsa-pre mt-1">{entry.data.textNotes.slice(0, 1200)}</pre>
+              </>
+            )}
             {(['completedNote', 'revisedNote', 'mistake'] as const).map((field) =>
               typeof entry.data[field] === 'string' && entry.data[field] ? (
                 <p key={field} className="mt-2 whitespace-pre-wrap text-sm">

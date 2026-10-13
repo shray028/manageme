@@ -47,7 +47,9 @@ export function ProblemDetail({ problem, progress, position, now, darkEditor, on
   const change = (patch: Partial<Progress>) => onChange(problem.key, patch, problem);
   const label = problem.difficulty ?? problem.tier;
   const due = isDueForRevision(progress, now);
-  const tooLong = progress.code.length >= LIMITS.code;
+  const isText = progress.language === 'text';
+  const editorValue = isText ? progress.textNotes : progress.code;
+  const tooLong = editorValue.length >= LIMITS.code;
   const editorLabelId = useId();
 
   return (
@@ -153,7 +155,7 @@ export function ProblemDetail({ problem, progress, position, now, darkEditor, on
             <label className="sr-only" htmlFor={`${editorLabelId}-lang`}>
               Language
             </label>
-            <select id={`${editorLabelId}-lang`} className="dsa-select" value={progress.language} onChange={(event) => change({ language: event.target.value as Language })}>
+            <select id={`${editorLabelId}-lang`} className="dsa-select" value={progress.language} onChange={(event) => change({ language: event.target.value as Language, textNotes: progress.textNotes })}>
               {Object.entries(LANGUAGE_LABELS).map(([value, text]) => (
                 <option key={value} value={value}>
                   {text}
@@ -167,15 +169,19 @@ export function ProblemDetail({ problem, progress, position, now, darkEditor, on
         </div>
         <Suspense fallback={<div className="dsa-editor-loading">Loading editor…</div>}>
           <CodeEditor
-            value={progress.code}
+            // Plain notes and code are separate documents, each with its own undo history.
+            key={isText ? 'plain-notes' : 'code'}
+            value={editorValue}
             language={progress.language}
             dark={darkEditor}
             label={`Code and notes for ${problem.title}`}
-            onChange={(code) => change({ code: code.slice(0, LIMITS.code) })}
+            onChange={(value) => change(isText ? { textNotes: value.slice(0, LIMITS.code) } : { code: value.slice(0, LIMITS.code) })}
             onBlur={onBlur}
           />
         </Suspense>
-        <p className="mt-2 text-sm text-[var(--dsa-muted)]">Tab indents. Press Esc, then Tab, to leave the editor.</p>
+        <p className="mt-2 text-sm text-[var(--dsa-muted)]">
+          {isText ? 'Plain notes are saved separately from your code, so switching back never overwrites it.' : 'Plain notes has its own separate space — switching to it never touches this code.'} Tab indents. Press Esc, then Tab, to leave the editor.
+        </p>
         {tooLong && <p className="mt-1 text-sm font-semibold text-[var(--dsa-danger)]">This box is full ({LIMITS.code.toLocaleString()} characters). Anything longer won’t be saved.</p>}
       </section>
 

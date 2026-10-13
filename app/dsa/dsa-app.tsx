@@ -33,7 +33,17 @@ export default function DsaApp() {
 function Shell({ children, header, wide = false, theme, onToggleTheme }: { children: React.ReactNode; header?: React.ReactNode; wide?: boolean; theme: SiteTheme; onToggleTheme: () => void }) {
   return (
     <div className={`dsa-root ${wide ? 'is-wide' : ''}`} data-theme={theme}>
-      <a href="#dsa-main" className="dsa-skip">
+      {/* Focus the content directly: a "#dsa-main" link would change the hash route. */}
+      <a
+        href="#/dsa"
+        className="dsa-skip"
+        onClick={(event) => {
+          event.preventDefault();
+          const main = document.getElementById('dsa-main');
+          main?.focus();
+          main?.scrollIntoView();
+        }}
+      >
         Skip to content
       </a>
       <header className="dsa-topbar">
@@ -51,7 +61,7 @@ function Shell({ children, header, wide = false, theme, onToggleTheme }: { child
           </div>
         </div>
       </header>
-      <main id="dsa-main" className={wide ? 'dsa-wide-main' : 'dsa-home-main'}>
+      <main id="dsa-main" tabIndex={-1} className={wide ? 'dsa-wide-main' : 'dsa-home-main'}>
         {children}
       </main>
     </div>

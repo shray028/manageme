@@ -1,11 +1,11 @@
 import { Component, lazy, StrictMode, Suspense, useEffect, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { navigate, useRoute } from '../app/router';
+import { useRoute } from '../app/router';
 import '../app/globals.css';
 import '../app/premium.css';
 
-const Workspace = lazy(() => import('../app/page'));
 const DsaApp = lazy(() => import('../app/dsa/dsa-app'));
+const FrontDoor = lazy(() => import('../app/front-door'));
 
 // A tab opened before a deployment can still reference a chunk that the new build removed.
 // Vite emits this event for that failed import; reload once to pick up the current build.
@@ -46,22 +46,20 @@ class LoadBoundary extends Component<{ children: ReactNode }, { failed: boolean 
   }
 }
 
-function readStart() {
-  try {
-    return localStorage.getItem('manageme:start');
-  } catch {
-    return null;
-  }
-}
+const isDsaRoute = (route: string) => route === '/dsa' || route.startsWith('/dsa/');
 
 function App() {
   const route = useRoute();
-  const isDsa = route === '/dsa' || route.startsWith('/dsa/');
+  const isDsa = isDsaRoute(route);
+  // "/" is the front page (also covers in-page anchors like "#paths", which read as "/").
+  const isFront = route === '/';
 
-  // People who use ManageMe only for DSA land straight on it.
+  // ManageMe is DSA-only for now: the older workspace isn't reachable from any address.
+  // Any other address (an old bookmark such as "#/roadmap") goes to the DSA home.
   useEffect(() => {
-    if (!window.location.hash && readStart() === 'dsa') navigate('/dsa');
-  }, []);
+    // replace() swaps the history entry, so Back doesn't bounce to the address being redirected.
+    if (!isDsa && !isFront) window.location.replace('#/dsa');
+  }, [isDsa, isFront]);
 
   return (
     <Suspense
@@ -71,7 +69,7 @@ function App() {
         </p>
       }
     >
-      {isDsa ? <DsaApp /> : <Workspace />}
+      {isDsa ? <DsaApp /> : isFront ? <FrontDoor /> : null}
     </Suspense>
   );
 }

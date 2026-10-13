@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { ArrowRight, BookOpen, Cloud, Download, LayoutGrid, ShieldCheck, Upload } from 'lucide-react';
+import { ArrowRight, BookOpen, Cloud, Download, ShieldCheck, Upload } from 'lucide-react';
 import { SHEETS, getSheet } from '@/lib/dsa/sheets';
 import { listProblems, newId, toProgress } from '@/lib/dsa/model';
 import { buildBackup, planRestore, type RestorePlan } from '@/lib/dsa/backup';
@@ -49,9 +49,6 @@ export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }:
   return (
     <div className="dsa-dashboard">
       <nav className="dsa-dashboard-nav" aria-label="DSA sections">
-        <p className="dsa-overline">NAVIGATE</p>
-        <a className="is-current" href="#dsa-main"><LayoutGrid size={17} aria-hidden /> Overview</a>
-        <a href="#sheets"><LayoutGrid size={17} aria-hidden /> Practice sheets</a>
         <div className="dsa-dashboard-nav-note"><ShieldCheck size={18} aria-hidden /><span>Your progress stays with your account.</span></div>
       </nav>
 
@@ -219,12 +216,13 @@ function BackupSection({ store, email }: { store: DsaStore; email: string }) {
                       const existing = store.get(change.collection, change.id);
                       if (change.collection === 'dsaProgress' && existing && store.remote) {
                         const current = toProgress(change.id, existing);
-                        if (current.code || current.completedNote || current.revisedNote || current.mistake)
+                        if (current.code || current.textNotes || current.completedNote || current.revisedNote || current.mistake)
                           void store.remote
                             .writeHistory('dsaProgress', change.id, {
                               savedAt: Date.now(),
                               reason: 'before-restore',
                               code: current.code,
+                              textNotes: current.textNotes,
                               completedNote: current.completedNote,
                               revisedNote: current.revisedNote,
                               mistake: current.mistake,

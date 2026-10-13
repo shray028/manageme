@@ -559,6 +559,63 @@ def landing_keeps_visitors_focused_on_dsa(page: Page):
     expect(page).to_have_url(f'{BASE}/#/dsa')
 
 
+@test
+def old_workspace_is_unreachable(page: Page):
+    sign_in(page)
+    expect(page.get_by_role('link', name='Practice sheets')).to_have_count(0)
+    expect(page.get_by_role('link', name='Overview')).to_have_count(0)
+    # The skip link focuses the content without leaving DSA.
+    page.keyboard.press('Tab')
+    page.keyboard.press('Enter')
+    expect(page).to_have_url(f'{BASE}/#/dsa')
+    expect(page.get_by_role('heading', level=1)).to_contain_text('practising')
+    # Old bookmarks and anchors all land on DSA, never on the old workspace.
+    for address in ['#/', '#sheets', '#/roadmap', '#/anything']:
+        page.goto(f'{BASE}/{address}')
+        expect(page).to_have_url(f'{BASE}/#/dsa')
+        expect(page.get_by_role('heading', level=1)).to_contain_text('practising')
+    expect(page.get_by_text('Make your workspace yours.')).to_have_count(0)
+
+
+@test
+def plain_notes_and_code_are_saved_separately(page: Page):
+    sign_in(page)
+    start_sheet(page, 0)
+    r = open_row(page, 'Two Sum')
+    type_code(page, r, 'def two_sum(nums, target):')
+    r.get_by_label('Language').select_option('text')
+    expect(r.locator('.cm-content')).not_to_contain_text('def two_sum')
+    type_code(page, r, 'Use a hash map of seen values')
+    r.get_by_label('Language').select_option('python')
+    expect(r.locator('.cm-content')).to_contain_text('def two_sum(nums, target):')
+    expect(r.locator('.cm-content')).not_to_contain_text('hash map')
+    # Writing over the code doesn't touch the notes.
+    r.locator('.cm-content').click()
+    page.keyboard.press('Control+A')
+    page.keyboard.type('class Solution: pass')
+    r.get_by_label('Language').select_option('text')
+    expect(r.locator('.cm-content')).to_contain_text('Use a hash map of seen values')
+    wait_saved(page)
+    doc = server_doc(page, 'dsaProgress', 'two-sum')
+    assert doc.get('code') == 'class Solution: pass', doc
+    assert doc.get('textNotes') == 'Use a hash map of seen values', doc
+    page.reload()
+    r = open_row(page, 'Two Sum')
+    expect(r.locator('.cm-content')).to_contain_text('Use a hash map of seen values')
+
+
+@test
+def a2z_lists_only_questions(page: Page):
+    sign_in(page)
+    card = page.locator('li.dsa-sheet-card').filter(has=page.get_by_role('heading', name='Striver’s A2Z DSA Sheet', exact=True))
+    expect(card).to_contain_text('455 problems')
+    card.get_by_role('button', name='Start this sheet').click()
+    expect(row(page, 'Pattern 1')).to_be_visible()
+    for lesson in ['Breaking The Myth', 'Learn C++', 'Easy and Medium', 'STL']:
+        expect(page.get_by_test_id('problem-item').filter(has=page.get_by_text(lesson, exact=True))).to_have_count(0)
+    page.screenshot(path=str(SHOTS / 'a2z.png'))
+
+
 # ----------------------------------------------------------------------------- runner
 
 def ensure_server():

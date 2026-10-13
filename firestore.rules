@@ -18,6 +18,7 @@ service cloud.firestore {
     function validProgress(data) {
       return data.size() <= 40
         && optionalString(data, 'code', 100000)
+        && optionalString(data, 'textNotes', 100000)
         && optionalString(data, 'completedNote', 20000)
         && optionalString(data, 'revisedNote', 20000)
         && optionalString(data, 'mistake', 20000)

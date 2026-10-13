@@ -15,6 +15,7 @@ type Props = {
   onClearOldData: () => void;
   onRetrySync: () => void;
   onSignOut: () => void;
+  onBack: () => void;
 };
 
 const gates: Record<number, string> = {
@@ -39,6 +40,7 @@ export function RoadmapView({
   onClearOldData,
   onRetrySync,
   onSignOut,
+  onBack,
 }: Props) {
   const saved = new Map((project.cards ?? []).map((card) => [card.id, card]));
   const isDone = (day: { day: number; lab: string }) => {
@@ -65,9 +67,17 @@ export function RoadmapView({
               <p className="text-xs text-stone-500">Python backend · ML systems</p>
             </div>
           </div>
-          <button onClick={onSignOut} className="flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-stone-900" aria-label="Sign out of ManageMe">
-            <LogOut className="size-4" /> Sign out
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={onBack} className="text-xs font-semibold text-teal-800 underline underline-offset-2 hover:text-teal-950">
+              Back to workspace
+            </button>
+            <a href="#/dsa" className="text-xs font-semibold text-indigo-800 underline underline-offset-2">
+              DSA practice
+            </a>
+            <button onClick={onSignOut} className="flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-stone-900" aria-label="Sign out of ManageMe">
+              <LogOut className="size-4" /> Sign out
+            </button>
+          </div>
         </div>
       </header>
 

@@ -21,6 +21,15 @@ describe('toProgress', () => {
     expect(progress.revisionCount).toBe(0);
   });
 
+  it('keeps plain notes and code apart', () => {
+    const both = toProgress('p', { code: 'def f(): pass', textNotes: 'two pointers', language: 'text' });
+    expect(both).toMatchObject({ code: 'def f(): pass', textNotes: 'two pointers' });
+    expect(toProgress('p', { code: 'class S {}', language: 'java' }).textNotes).toBe('');
+    // Saved before plain notes had their own space: the notes still show in plain mode, code is untouched.
+    expect(toProgress('p', { code: 'old notes', language: 'text' })).toMatchObject({ code: 'old notes', textNotes: 'old notes' });
+    expect(toProgress('p', { textNotes: 7 }).textNotes).toBe('');
+  });
+
   it('distinguishes "never edited links" (use defaults) from "removed all links"', () => {
     const problem = getSheet('strivers-180')!.problems[0];
     expect(effectiveLinks(toProgress('p', {}), problem)).toHaveLength(1);

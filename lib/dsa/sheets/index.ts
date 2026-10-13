@@ -50,11 +50,46 @@ const buildStriver = () =>
     subgroupLabel: 'Sub-pattern',
   });
 
+/**
+ * The A2Z course mixes lessons (videos, theory, language tutorials) in with its problems.
+ * The tracker shows only the problems you solve; lessons are left out.
+ */
+const A2Z_LESSON_TOPICS = new Set([
+  'Fundamentals of Programming',
+  'Language Basics',
+  'Logic Building (Patterns)', // overview videos for the Pattern 1–22 problems listed below them
+  'Time Complexity',
+  'Standard Libraries & Collections',
+  'Concept Basics',
+]);
+const A2Z_LESSON_TITLES = new Set([
+  'Recursion Theory',
+  'Recursion Concepts with Parameters',
+  'Learn All Patterns of Subsequences (Theory)',
+  'Introduction to Singly LinkedList',
+  'Introduction to Doubly LL',
+  'Introduction to Bits and Tricks',
+  'Implementation using different DS',
+  'Requirements needed to construct a unique BT',
+  'Introduction to BST',
+  'Heaps (Theory Video)',
+  'Introduction to Graph',
+  'Traversal Techniques',
+  'MST theory',
+  'Introduction to DP',
+  'Bit PreRequisites for TRIE Problems',
+  'Hashing In Strings | Theory',
+]);
+export const isA2ZLesson = ([, subgroup, title]: StriverRow) => {
+  const name = title.trim();
+  return A2Z_LESSON_TOPICS.has(subgroup) || A2Z_LESSON_TITLES.has(name) || /^(theory|introduction)$/i.test(name) || (subgroup === 'Theory' && name === 'Basic Hashing');
+};
+
 const buildA2Z = () =>
-  buildTuf(a2zRows as StriverRow[], {
+  buildTuf((a2zRows as StriverRow[]).filter((row) => !isA2ZLesson(row)), {
     id: 'strivers-a2z',
     title: 'Striver’s A2Z DSA Sheet',
-    description: 'The full A2Z course in order, from programming basics to advanced problems, with Striver’s videos.',
+    description: 'Every practice problem from the A2Z course, in course order, with Striver’s videos.',
     sourceUrl: 'https://takeuforward.org/prep-hub/strivers-a2z-dsa-sheet',
     groupLabel: 'Step',
     subgroupLabel: 'Topic',

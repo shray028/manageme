@@ -53,7 +53,7 @@ describe('bundled sheets', () => {
   });
 
   it('match the source sizes', () => {
-    expect(getSheet('strivers-a2z')!.problems).toHaveLength(495);
+    expect(getSheet('strivers-a2z')!.problems).toHaveLength(455); // 495 course items minus 40 lessons
     expect(getSheet('neetcode-150')!.problems).toHaveLength(150);
     expect(getSheet('leetcode-top-interview-easy')!.problems).toHaveLength(48);
     expect(getSheet('strivers-180')!.problems).toHaveLength(179);
@@ -95,11 +95,19 @@ describe('bundled sheets', () => {
 
   it('keeps the A2Z steps in course order and cleans odd LeetCode links', () => {
     const a2z = getSheet('strivers-a2z')!;
-    expect(a2z.problems[0].group).toBe('Beginner Problems');
+    expect(a2z.problems[0]).toMatchObject({ group: 'Beginner Problems', title: 'Pattern 1' });
     expect(a2z.problems.at(-1)!.group).toBe('Maths');
     const rotated = a2z.problems.find((problem) => problem.url?.includes('check-if-array-is-sorted-and-rotated'))!;
     expect(rotated.url).toBe('https://leetcode.com/problems/check-if-array-is-sorted-and-rotated/');
     expect(rotated.key).toBe('check-if-array-is-sorted-and-rotated');
+  });
+
+  it('shows only practice questions from A2Z, not its lessons', () => {
+    const titles = getSheet('strivers-a2z')!.problems.map((problem) => problem.title);
+    for (const lesson of ['Breaking The Myth', 'Learn Python', 'STL', 'Theory with examples', 'Recursion Theory', 'Introduction to Graph', 'Introduction to DP', 'Basic Arrays', 'Basic Hashing'])
+      expect(titles).not.toContain(lesson);
+    for (const problem of ['Pattern 22', 'Selection Sort', 'Count all Digits of a Number', 'Two Sum', 'Disjoint Set', 'Insertion in DLL'])
+      expect(titles).toContain(problem);
   });
 
   it('maps every bundled LeetCode source to a real sheet', () => {

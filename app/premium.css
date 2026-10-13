@@ -143,6 +143,7 @@
 .dsa-dashboard-nav a:hover, .dsa-dashboard-nav a.is-current { border-color: #dde5f3; background: #fff; color: #2149d0; box-shadow: 0 2px 4px rgb(26 52 103 / .05); }
 .dsa-dashboard-nav-note { display: flex; gap: 9px; max-width: 164px; margin: 34px 18px 0 10px; padding-top: 21px; border-top: 1px solid var(--dsa-line); color: #59687c; font-size: 11px; line-height: 1.45; }
 .dsa-dashboard-nav-note svg { flex: none; color: #27a9b8; }
+.dsa-dashboard-nav-note:first-child { margin-top: 4px; padding-top: 0; border-top: 0; }
 .dsa-dashboard-content { min-width: 0; padding: 35px 0 80px; }
 .dsa-dashboard-intro h1 { max-width: 790px; margin-top: 7px; }
 .dsa-dashboard-intro > p:last-child { max-width: 590px; margin-top: 10px; color: var(--dsa-muted); font-size: 13px; }

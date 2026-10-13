@@ -44,6 +44,9 @@ export function toProgress(key: string, doc: Doc | undefined): Progress {
     bookmarked: doc.bookmarked === true,
     mistake: str(doc.mistake, LIMITS.note),
     code: str(doc.code, LIMITS.code),
+    // Before plain notes had their own field they lived in `code`; such notes still show in plain mode.
+    // Changing the mode always writes `textNotes`, so this fallback only applies to untouched old notes.
+    textNotes: typeof doc.textNotes === 'string' ? str(doc.textNotes, LIMITS.code) : doc.language === 'text' ? str(doc.code, LIMITS.code) : '',
     language: LANGUAGES.includes(doc.language as Language) ? (doc.language as Language) : base.language,
     links: sanitiseLinks(doc.links),
     clientUpdatedAt: num(doc.clientUpdatedAt) ?? 0,

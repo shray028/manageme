@@ -73,7 +73,10 @@ export type Progress = {
   revisedNote: string;
   bookmarked: boolean;
   mistake: string;
+  /** The code editor (any programming language). */
   code: string;
+  /** Plain-text mode keeps its own notes, so switching modes never overwrites the code. */
+  textNotes: string;
   language: Language;
   /** Links the person added or edited. `null` means "use the sheet's defaults". */
   links: RefLink[] | null;
@@ -83,7 +86,7 @@ export type Progress = {
 
 export type ProgressPatch = Partial<Omit<Progress, 'key'>>;
 
-export const TEXT_FIELDS = ['completedNote', 'revisedNote', 'mistake', 'code'] as const;
+export const TEXT_FIELDS = ['completedNote', 'revisedNote', 'mistake', 'code', 'textNotes'] as const;
 
 export const LIMITS = {
   code: 100_000,
@@ -106,6 +109,7 @@ export const emptyProgress = (key: string): Progress => ({
   bookmarked: false,
   mistake: '',
   code: '',
+  textNotes: '',
   language: 'python',
   links: null,
   clientUpdatedAt: 0,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bookmark, Check, ChevronDown, Plus, RotateCcw, Search } from 'lucide-react';
+import { ArrowLeft, Bookmark, Check, ChevronDown, Plus, Search } from 'lucide-react';
 import { getSheet } from '@/lib/dsa/sheets';
 import { groupProblems, isDueForRevision, listProblems, matchesFilter, toProgress, type Filter, type GroupMode } from '@/lib/dsa/model';
 import type { Doc } from '@/lib/dsa/sync';
@@ -334,21 +334,25 @@ export function ListView({ list, store, selectedKey, darkEditor, onToggleDark, o
                                 </span>
                                 <span className="dsa-item-meta">
                                   {(problem.difficulty ?? problem.tier) && <span className={`dsa-dot dsa-dot-${(problem.difficulty ?? problem.tier ?? '').toLowerCase()}`}>{problem.difficulty ?? problem.tier}</span>}
-                                  {progress.revised && <span className="text-[var(--dsa-revised)]">Revised</span>}
                                   {isDueForRevision(progress, now) && <span className="text-[var(--dsa-revised)]">Due</span>}
                                   {progress.bookmarked && <Bookmark className="size-3.5 text-[var(--dsa-warn)]" fill="currentColor" aria-label="On weak list" />}
                                 </span>
                               </button>
                               <button
                                 type="button"
-                                className={`dsa-mini-check is-revise ${progress.revised ? 'is-done' : ''}`}
+                                className={`dsa-revise-pill ${progress.revised ? 'is-on' : ''}`}
                                 role="checkbox"
                                 aria-checked={progress.revised}
                                 aria-label={`Revised: ${problem.title}`}
-                                title="Revised"
                                 onClick={() => quickToggle(problem, 'revised')}
                               >
-                                {progress.revised ? <Check className="size-3.5" strokeWidth={3} aria-hidden /> : <RotateCcw className="size-3.5" aria-hidden />}
+                                {progress.revised ? (
+                                  <>
+                                    <Check className="size-3" strokeWidth={3} aria-hidden /> Revised
+                                  </>
+                                ) : (
+                                  'Revise'
+                                )}
                               </button>
                             </li>
                           );

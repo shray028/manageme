@@ -2,40 +2,86 @@ import type { Difficulty, SheetDefinition, SheetProblem } from '../types';
 import { leetcodeKey, problemUrl, safeDocId } from '../leetcode';
 import striverRows from './strivers-180.json';
 import topInterviewMH from './leetcode-top-interview-mh.json';
+import a2zRows from './strivers-a2z.json';
+import neetcodeRows from './neetcode-150.json';
 
-type StriverRow = [group: string, subgroup: string, title: string, leetcode: string | null, video: string | null, tufSlug: string, tier: string];
+type StriverRow = [group: string, subgroup: string, title: string, leetcode: string | null, video: string | null, tufSlug: string, tier: string | null];
 
-function buildStriver(): SheetDefinition {
+/** Builds a takeUforward sheet (Striver's 180, Striver's A2Z) from its exported rows. */
+function buildTuf(rows: StriverRow[], meta: Omit<SheetDefinition, 'problems'>): SheetDefinition {
   const usedKeys = new Set<string>();
-  const problems: SheetProblem[] = (striverRows as StriverRow[]).map(([group, subgroup, title, leetcode, video, tufSlug, tier]) => {
-    const isPlainSlug = Boolean(leetcode && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(leetcode));
+  const problems: SheetProblem[] = rows.map(([group, subgroup, title, leetcode, video, tufSlug, tier]) => {
+    // Some links carry extras ("…/description/", "…/#:~:text=…"); those still point at one problem.
+    const plain = leetcode?.match(/^([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(?:#.*|description\/?)?)?$/);
+    const slug = plain?.[1];
     // Two sheet entries can point at the same LeetCode problem (e.g. both cycle-detection variants
     // use Course Schedule). They are separate items in the sheet, so only the first one shares
     // progress with the LeetCode problem; later ones get their own key.
-    let key = isPlainSlug ? leetcodeKey(leetcode!) : safeDocId(`tuf:${tufSlug}`);
+    let key = slug ? leetcodeKey(slug) : safeDocId(`tuf:${tufSlug}`);
     if (usedKeys.has(key)) key = safeDocId(`tuf:${tufSlug}`);
+    // The A2Z sheet lists a few lessons in two steps; each appearance gets its own checkbox.
+    for (let copy = 2; usedKeys.has(key); copy += 1) key = safeDocId(`tuf:${tufSlug}-${copy}`);
     usedKeys.add(key);
-    const url = leetcode
-      ? `https://leetcode.com/problems/${leetcode.replace(/\/$/, '')}/`
-      : `https://takeuforward.org/practice/dsa/${encodeURIComponent(tufSlug)}`;
+    const url = slug
+      ? problemUrl(slug)
+      : leetcode
+        ? `https://leetcode.com/problems/${leetcode.replace(/\/$/, '')}/`
+        : `https://takeuforward.org/practice/dsa/${encodeURIComponent(tufSlug)}`;
     return {
       key,
       title: title.trim(),
       url,
-      tier,
+      ...(tier ? { tier } : {}),
       group,
-      subgroup,
+      ...(subgroup ? { subgroup } : {}),
       defaultLinks: video ? [{ id: 'striver-video', label: "Striver's video explanation", url: video }] : [],
     };
   });
-  return {
+  return { ...meta, problems };
+}
+
+const buildStriver = () =>
+  buildTuf(striverRows as StriverRow[], {
     id: 'strivers-180',
     title: "Striver's 180 – Master DSA Patterns",
     description: '179 problems organised by pattern, each with Striver’s video where available.',
     sourceUrl: 'https://takeuforward.org/prep-hub/strivers-180-master-dsa-patterns',
     groupLabel: 'Pattern',
     subgroupLabel: 'Sub-pattern',
-    problems,
+  });
+
+const buildA2Z = () =>
+  buildTuf(a2zRows as StriverRow[], {
+    id: 'strivers-a2z',
+    title: 'Striver’s A2Z DSA Sheet',
+    description: 'The full A2Z course in order, from programming basics to advanced problems, with Striver’s videos.',
+    sourceUrl: 'https://takeuforward.org/prep-hub/strivers-a2z-dsa-sheet',
+    groupLabel: 'Step',
+    subgroupLabel: 'Topic',
+  });
+
+type NeetCodeRow = [topic: string, title: string, number: string, slug: string, difficulty: 'E' | 'M' | 'H', premium: number, explanation: string | null, striverVideo: string | null];
+
+function buildNeetCode(): SheetDefinition {
+  return {
+    id: 'neetcode-150',
+    title: 'NeetCode 150',
+    description: 'The NeetCode roadmap: 150 problems by topic, from easy to hard, with NeetCode and Striver explanations.',
+    sourceUrl: 'https://neetcode.io/practice/practice/neetcode150',
+    groupLabel: 'Topic',
+    problems: (neetcodeRows as NeetCodeRow[]).map(([topic, title, number, slug, letter, premium, explanation, striverVideo]) => ({
+      key: leetcodeKey(slug),
+      title,
+      url: problemUrl(slug),
+      number,
+      difficulty: difficultyFromLetter[letter],
+      ...(premium ? { tier: 'Premium' } : {}),
+      group: topic,
+      defaultLinks: [
+        ...(explanation ? [{ id: 'neetcode-explanation', label: 'NeetCode explanation', url: explanation }] : []),
+        ...(striverVideo ? [{ id: 'striver-video', label: "Striver's video explanation", url: striverVideo }] : []),
+      ],
+    })),
   };
 }
 
@@ -170,7 +216,8 @@ function buildFromCard(id: string, title: string, description: string, cardSlug:
 
 const mh = topInterviewMH as unknown as { m: [string, Array<[string, MhRow[]]>]; h: [string, Array<[string, MhRow[]]>] };
 
-export const SHEETS: SheetDefinition[] = [buildTopInterviewEasy(), buildStriver()];
+/** Suggested sheets, newest additions first. The first two run roughly from easiest to hardest. */
+export const SHEETS: SheetDefinition[] = [buildA2Z(), buildNeetCode(), buildTopInterviewEasy(), buildStriver()];
 
 /** Lists we ship a copy of, so importing them works even when LeetCode can't be reached. */
 export const EXTRA_BUNDLED: SheetDefinition[] = [

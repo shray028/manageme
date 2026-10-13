@@ -48,7 +48,13 @@ describe('helpers', () => {
 
 describe('bundled sheets', () => {
   const all = [...SHEETS, ...EXTRA_BUNDLED];
+  it('lists the newest sheets first', () => {
+    expect(SHEETS.map((sheet) => sheet.id)).toEqual(['strivers-a2z', 'neetcode-150', 'leetcode-top-interview-easy', 'strivers-180']);
+  });
+
   it('match the source sizes', () => {
+    expect(getSheet('strivers-a2z')!.problems).toHaveLength(495);
+    expect(getSheet('neetcode-150')!.problems).toHaveLength(150);
     expect(getSheet('leetcode-top-interview-easy')!.problems).toHaveLength(48);
     expect(getSheet('strivers-180')!.problems).toHaveLength(179);
     expect(getSheet('leetcode-top-interview-medium')!.problems.length).toBeGreaterThan(40);
@@ -62,7 +68,7 @@ describe('bundled sheets', () => {
       expect(problem.group.length).toBeGreaterThan(0);
       expect(safeDocId(problem.key)).toBe(problem.key);
       if (problem.url) expect(problem.url).toMatch(/^https:\/\//);
-      for (const link of problem.defaultLinks ?? []) expect(link.url).toMatch(/^https:\/\/(www\.)?(youtu\.be|youtube\.com)\//);
+      for (const link of problem.defaultLinks ?? []) expect(link.url).toMatch(/^https:\/\/(www\.)?(youtu\.be|youtube\.com|neetcode\.io)\//);
     }
   });
 
@@ -77,6 +83,23 @@ describe('bundled sheets', () => {
     const kadane = getSheet('strivers-180')!.problems.find((problem) => problem.title === "Kadane's Algorithm")!;
     expect(kadane.defaultLinks?.[0]).toMatchObject({ url: 'https://youtu.be/AHZpyENo7k4' });
     expect(kadane.key).toBe('maximum-subarray');
+  });
+
+  it('gives NeetCode problems LeetCode difficulty and explanation links', () => {
+    const neetcode = getSheet('neetcode-150')!;
+    const twoSum = neetcode.problems.find((problem) => problem.key === 'two-sum')!;
+    expect(twoSum).toMatchObject({ number: '1', difficulty: 'Easy', group: 'Arrays & Hashing' });
+    expect(twoSum.defaultLinks?.map((link) => link.label)).toEqual(['NeetCode explanation', "Striver's video explanation"]);
+    expect(new Set(neetcode.problems.map((problem) => problem.difficulty))).toEqual(new Set(['Easy', 'Medium', 'Hard']));
+  });
+
+  it('keeps the A2Z steps in course order and cleans odd LeetCode links', () => {
+    const a2z = getSheet('strivers-a2z')!;
+    expect(a2z.problems[0].group).toBe('Beginner Problems');
+    expect(a2z.problems.at(-1)!.group).toBe('Maths');
+    const rotated = a2z.problems.find((problem) => problem.url?.includes('check-if-array-is-sorted-and-rotated'))!;
+    expect(rotated.url).toBe('https://leetcode.com/problems/check-if-array-is-sorted-and-rotated/');
+    expect(rotated.key).toBe('check-if-array-is-sorted-and-rotated');
   });
 
   it('maps every bundled LeetCode source to a real sheet', () => {

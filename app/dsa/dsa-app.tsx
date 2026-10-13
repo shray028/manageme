@@ -78,7 +78,7 @@ function SignedOut({ theme, onToggleTheme }: { theme: SiteTheme; onToggleTheme: 
             } finally { setBusy(false); }
           }}><LogIn className="size-4" aria-hidden /> {busy ? 'Opening Google…' : 'Sign in with Google'} <ArrowRight className="size-4" aria-hidden /></button>
           {error && <p role="alert" className="mt-3 font-semibold text-[var(--dsa-danger)]">{error}</p>}
-          <p className="dsa-welcome-privacy"><ShieldCheck size={17} aria-hidden /> Your lists and notes are private to your sign-in.</p>
+          <p className="dsa-welcome-privacy"><ShieldCheck size={17} aria-hidden /> Your practice and notes are private to your sign-in.</p>
         </div>
         <div className="dsa-welcome-preview" aria-label="Illustration of a DSA practice list">
           <div className="dsa-welcome-preview-head"><p className="dsa-overline">YOUR PRACTICE DESK</p><span>01 / 03</span></div>
@@ -186,7 +186,7 @@ function SignedIn({ user, theme, onToggleTheme }: { user: AppUser; theme: SiteTh
     return (
       <Shell header={header} theme={theme} onToggleTheme={onToggleTheme}>
         <p role="status" className="py-24 text-center text-lg">
-          Loading your lists…
+          Loading your practice…
         </p>
       </Shell>
     );

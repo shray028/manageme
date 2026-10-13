@@ -47,7 +47,7 @@ export function AddProblem({ groups, existingKeys, onAdd }: Props) {
             : { tone: 'warn', text: `Added “${problem.title}”. LeetCode couldn’t be reached, so the name comes from the link and the number is missing.` },
         );
       } else if (source && source.kind !== 'other' && /^https?:\/\//i.test(input)) {
-        setMessage({ tone: 'error', text: 'That LeetCode link isn’t a single problem. To add a whole list, use “Import a list” on the DSA home page.' });
+        setMessage({ tone: 'error', text: 'That LeetCode link isn’t a single problem. Paste a link to one problem instead.' });
         return;
       } else {
         const url = link.trim() ? (/^[a-z]+:\/\//i.test(link.trim()) ? link.trim() : `https://${link.trim()}`) : '';

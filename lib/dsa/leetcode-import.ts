@@ -3,7 +3,7 @@
  * unit-tested with a fake fetch. Every response is validated and normalised before it reaches the
  * browser, and every failure becomes a clear, human message instead of a crash.
  */
-import { normaliseDifficulty, parseSource, problemUrl, leetcodeKey, titleFromSlug } from './leetcode';
+import { normaliseDifficulty, parseSource, problemUrl, leetcodeKey, titleFromSlug } from './leetcode.js';
 import type { SheetProblem } from './types';
 
 export type ImportedList = { kind: 'list'; title: string; sourceUrl: string; problems: SheetProblem[]; warnings: string[] };

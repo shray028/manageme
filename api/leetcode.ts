@@ -1,4 +1,4 @@
-import { ImportError, resolveUrl } from '../lib/dsa/leetcode-import';
+import { ImportError, resolveUrl } from '../lib/dsa/leetcode-import.js';
 
 export const config = { maxDuration: 60 };
 export const maxDuration = 60;

@@ -218,6 +218,8 @@ def failed_load_never_shows_or_saves_empty_data(page: Page):
 @test
 def add_problems_by_name_and_by_leetcode_link(page: Page):
     sign_in(page)
+    # Exercise the offline fallback deterministically, even when LeetCode is reachable.
+    page.route('**/api/leetcode', lambda route: route.abort())
     start_sheet(page, 1)
     page.get_by_label('Problem name or LeetCode link').fill('https://leetcode.com/problems/zigzag-conversion/description/')
     page.get_by_role('button', name='Add problem').click()
@@ -365,7 +367,7 @@ def earlier_versions_can_be_restored_after_deleting_code(page: Page):
     type_code(page, r, long_code)
     wait_saved(page)
     r.locator('.cm-content').click()
-    page.keyboard.press('Control+a')
+    page.keyboard.press('ControlOrMeta+a')
     page.keyboard.press('Delete')
     page.get_by_label('Search problems and notes').click()  # blur → save
     wait_saved(page)

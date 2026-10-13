@@ -45,6 +45,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { PandaCompanion } from '@/components/panda-companion';
+import { BrandLogo } from '@/components/brand-logo';
 import { auth, db, firebaseApp, googleProvider } from '@/lib/firebase';
 import { RoadmapView } from './roadmap-view';
 
@@ -159,7 +160,7 @@ function TaskRow({
       <button
         aria-label={`Mark ${task.title} as ${task.done ? 'incomplete' : 'complete'}`}
         onClick={() => onToggle(task.id)}
-        className={`grid size-5 shrink-0 place-items-center rounded-full border ${task.done ? 'border-teal-500 bg-teal-500 text-white' : 'border-stone-300 text-transparent hover:border-teal-500'}`}
+        className={`grid size-5 shrink-0 place-items-center rounded-full border ${task.done ? 'border-sky-500 bg-sky-500 text-white' : 'border-stone-300 text-transparent hover:border-sky-500'}`}
       >
         <Check className="size-3" strokeWidth={3} />
       </button>
@@ -210,7 +211,7 @@ function NavigationPanel({
   if (activeNav === 'Inbox')
     return (
       <div className="rounded-2xl border border-stone-200 bg-white p-6">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
           Capture first
         </p>
         <h2 className="mt-1 font-display text-2xl font-semibold">Inbox</h2>
@@ -232,7 +233,7 @@ function NavigationPanel({
   if (activeNav === 'Planner')
     return (
       <div className="rounded-2xl border border-stone-200 bg-white p-6">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
           Keep it realistic
         </p>
         <h2 className="mt-1 font-display text-2xl font-semibold">Planner</h2>
@@ -242,7 +243,7 @@ function NavigationPanel({
               key={task.id}
               className="flex items-center gap-4 rounded-xl bg-stone-50 px-4 py-3"
             >
-              <span className="w-24 text-xs font-bold text-teal-700">
+              <span className="w-24 text-xs font-bold text-blue-700">
                 {task.time}
               </span>
               <span className="text-sm font-medium text-stone-700">
@@ -256,7 +257,7 @@ function NavigationPanel({
   if (activeNav === 'Projects')
     return (
       <div className="rounded-2xl border border-stone-200 bg-white p-6">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-indigo-600">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600">
           Longer direction
         </p>
         <h2 className="mt-1 font-display text-2xl font-semibold">
@@ -279,7 +280,7 @@ function NavigationPanel({
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Name a project or goal"
           />
-          <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+          <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
             Add project
           </Button>
         </form>
@@ -364,7 +365,7 @@ function ProjectBoard({
             Raise a task, then add a Drive link or image directly on its card.
           </p>
         </div>
-        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-bold text-indigo-700">
+        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">
           {cards.length} cards
         </span>
       </div>
@@ -377,7 +378,7 @@ function ProjectBoard({
         <Button
           type="submit"
           size="sm"
-          className="bg-indigo-600 hover:bg-indigo-700"
+          className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="size-3.5" /> Add card
         </Button>
@@ -498,7 +499,7 @@ function ProjectBoard({
                               href={attachment.url}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex items-center gap-1.5 truncate text-[10px] font-semibold text-indigo-600 hover:underline"
+                              className="flex items-center gap-1.5 truncate text-[10px] font-semibold text-blue-600 hover:underline"
                             >
                               {attachment.kind === 'image' ? (
                                 <ImagePlus className="size-3" />
@@ -1117,26 +1118,21 @@ export default function Home() {
 
   if (!authChecked)
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f6f5f1] text-sm font-semibold text-teal-800">
+      <main className="grid min-h-screen place-items-center bg-[#f4f8ff] text-sm font-semibold text-blue-800">
         Preparing your calm space…
       </main>
     );
   if (!user)
     return (
-      <main className="relative min-h-screen overflow-hidden bg-[#f6f5f1] text-stone-900">
-        <div className="absolute -left-24 top-24 size-72 rounded-full bg-teal-100/60 blur-3xl" />
-        <div className="absolute -right-24 bottom-4 size-80 rounded-full bg-rose-100/70 blur-3xl" />
+      <main className="relative min-h-screen overflow-hidden bg-[#f4f8ff] text-[#0b2454]">
+        <div className="absolute -left-24 top-24 size-72 rounded-full bg-sky-100/80 blur-3xl" />
+        <div className="absolute -right-24 bottom-4 size-80 rounded-full bg-cyan-100/80 blur-3xl" />
         <header className="relative z-10 mx-auto flex h-20 max-w-6xl items-center justify-between px-5">
-          <div className="flex items-center gap-2.5">
-            <div className="grid size-8 place-items-center rounded-[11px] bg-teal-700 text-sm font-bold text-white">
-              m
-            </div>
-            <span className="font-display text-lg font-semibold">ManageMe</span>
-          </div>
+          <BrandLogo />
           <Button
             onClick={signIn}
             disabled={authLoading}
-            className="bg-teal-700 hover:bg-teal-800"
+            className="bg-blue-700 hover:bg-blue-800"
           >
             <LogIn className="size-4" />
             {authLoading ? 'Opening Google…' : 'Start with Google'}
@@ -1144,7 +1140,7 @@ export default function Home() {
         </header>
         <section className="relative z-10 mx-auto grid max-w-6xl items-center gap-8 px-5 pb-20 pt-12 md:grid-cols-[1.05fr_.95fr] md:pt-24">
           <div>
-            <p className="inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-bold tracking-wide text-teal-800">
+            <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold tracking-wide text-blue-800">
               YOUR CALMER WAY FORWARD
             </p>
             <h1 className="mt-5 max-w-xl font-display text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.045em] sm:text-5xl lg:text-[3.5rem]">
@@ -1168,7 +1164,7 @@ export default function Home() {
                     /* optional */
                   }
                 }}
-                className="rounded-2xl border border-indigo-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-400"
+                className="rounded-2xl border border-sky-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-400"
               >
                 <span className="block text-base font-bold text-stone-900">Track DSA practice</span>
                 <span className="mt-1 block text-sm text-stone-600">
@@ -1179,7 +1175,7 @@ export default function Home() {
                 type="button"
                 onClick={signIn}
                 disabled={authLoading}
-                className="flex flex-col items-start rounded-2xl border border-teal-200 bg-white p-4 text-left shadow-sm transition hover:border-teal-500"
+                className="flex flex-col items-start rounded-2xl border border-cyan-200 bg-white p-4 text-left shadow-sm transition hover:border-cyan-500"
               >
                 <span className="block text-base font-bold text-stone-900">
                   {authLoading ? 'Opening Google…' : 'Plan my days'}
@@ -1193,9 +1189,9 @@ export default function Home() {
               Free to begin · Google sign-in keeps your data private
             </p>
           </div>
-          <div className="relative mx-auto w-full max-w-md rounded-[2.5rem] border border-white/80 bg-white/70 p-5 shadow-[0_24px_70px_rgba(26,75,70,.12)] backdrop-blur">
-            <div className="rounded-[2rem] bg-[#fdf6f2] px-6 pb-4 pt-7">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-500">
+          <div className="relative mx-auto w-full max-w-md rounded-[2.5rem] border border-white/80 bg-white/70 p-5 shadow-[0_24px_70px_rgba(23,105,216,.12)] backdrop-blur">
+            <div className="rounded-[2rem] bg-[#edf8ff] px-6 pb-4 pt-7">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-700">
                 Your gentle co-pilot
               </p>
               <p className="mt-2 font-display text-2xl font-semibold">
@@ -1210,13 +1206,13 @@ export default function Home() {
               />
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-bold text-stone-600">
-              <span className="rounded-xl bg-teal-50 px-2 py-3">
+              <span className="rounded-xl bg-sky-50 px-2 py-3">
                 Habit rhythm
               </span>
-              <span className="rounded-xl bg-indigo-50 px-2 py-3">
+              <span className="rounded-xl bg-blue-50 px-2 py-3">
                 Focus sessions
               </span>
-              <span className="rounded-xl bg-rose-50 px-2 py-3">
+              <span className="rounded-xl bg-cyan-50 px-2 py-3">
                 Projects board
               </span>
             </div>
@@ -1316,8 +1312,8 @@ export default function Home() {
   const navItems = [...nav, ...(roadmapProject ? ([['Roadmap', Target]] as const) : [])];
 
   return (
-    <main className="min-h-screen bg-[#f6f5f1] text-stone-900">
-      <header className="sticky top-0 z-20 flex h-[65px] items-center justify-between border-b border-stone-200/80 bg-[#fbfaf7]/90 px-4 backdrop-blur md:px-7">
+    <main className="min-h-screen bg-[#f4f8ff] text-stone-900">
+      <header className="sticky top-0 z-20 flex h-[65px] items-center justify-between border-b border-sky-200/80 bg-white/90 px-4 backdrop-blur md:px-7">
         <div className="flex items-center gap-3">
           <button
             className="grid size-8 place-items-center rounded-lg text-stone-500 hover:bg-stone-100 lg:hidden"
@@ -1327,12 +1323,7 @@ export default function Home() {
           >
             {showMobileNav ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
-          <div className="grid size-8 place-items-center rounded-[11px] bg-teal-700 text-sm font-bold text-white shadow-sm">
-            m
-          </div>
-          <span className="font-display text-[17px] font-semibold tracking-[-0.04em]">
-            ManageMe
-          </span>
+          <BrandLogo compact />
         </div>
         <button
           onClick={() => setShowCapture(true)}
@@ -1349,7 +1340,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <a
             href="#/dsa"
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-100"
+            className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-100"
           >
             <BookOpen className="size-3.5" /> DSA practice
           </a>
@@ -1358,7 +1349,7 @@ export default function Home() {
               setFocusTask(nextTask?.title || '');
               setShowFocus(true);
             }}
-            className="hidden items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100 sm:flex"
+            className="hidden items-center gap-1.5 rounded-lg bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-blue-800 hover:bg-sky-100 sm:flex"
           >
             <TimerReset className="size-3.5" /> Focus
           </button>
@@ -1387,7 +1378,7 @@ export default function Home() {
               onClick={signIn}
               disabled={authLoading}
               size="sm"
-              className="bg-teal-700 text-[11px] hover:bg-teal-800"
+              className="bg-blue-700 text-[11px] hover:bg-blue-800"
             >
               <LogIn className="size-3.5" />
               {authLoading ? 'Opening Google…' : 'Sign in'}
@@ -1407,7 +1398,7 @@ export default function Home() {
                   setShowMobileNav(false);
                 }}
                 aria-current={activeNav === name ? 'page' : undefined}
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${activeNav === name ? 'bg-teal-50 text-teal-800' : 'text-stone-600 hover:bg-stone-100'}`}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${activeNav === name ? 'bg-sky-50 text-blue-800' : 'text-stone-600 hover:bg-stone-100'}`}
               >
                 <Icon className="size-4" /> {name}
               </button>
@@ -1426,7 +1417,7 @@ export default function Home() {
                 key={name}
                 onClick={() => setActiveNav(name)}
                 aria-current={activeNav === name ? 'page' : undefined}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition ${activeNav === name ? 'bg-white text-teal-800 shadow-sm ring-1 ring-stone-200/70' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-700'}`}
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition ${activeNav === name ? 'bg-white text-blue-800 shadow-sm ring-1 ring-stone-200/70' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-700'}`}
               >
                 <Icon className="size-4" /> {name}
                 {name === 'Inbox' && unscheduledCount > 0 && (
@@ -1448,7 +1439,7 @@ export default function Home() {
                   onClick={() => setActiveNav(project.id === roadmapProject?.id ? 'Roadmap' : 'Projects')}
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-stone-600 hover:bg-stone-100"
                 >
-                  <span className="size-2 shrink-0 rounded-full bg-indigo-400" />
+                  <span className="size-2 shrink-0 rounded-full bg-blue-400" />
                   <span className="truncate">{project.title}</span>
                 </button>
               ))
@@ -1459,12 +1450,12 @@ export default function Home() {
               href="#/dsa"
               className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-stone-600 hover:bg-stone-100"
             >
-              <BookOpen className="size-3.5 text-indigo-500" /> DSA practice
+              <BookOpen className="size-3.5 text-blue-500" /> DSA practice
             </a>
           </div>
           <button
             onClick={() => setShowCapture(true)}
-            className="mt-8 flex items-center gap-2 px-3 text-xs font-semibold text-teal-700 hover:text-teal-900"
+            className="mt-8 flex items-center gap-2 px-3 text-xs font-semibold text-blue-700 hover:text-blue-900"
           >
             <CirclePlus className="size-4" /> Capture
           </button>
@@ -1473,7 +1464,7 @@ export default function Home() {
         <section className="min-w-0 px-4 py-7 sm:px-7 lg:px-9 xl:px-12">
           <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-teal-700">
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700">
                 {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
               </p>
               <h1 className="font-display text-3xl font-semibold tracking-[-0.055em] text-stone-900 sm:text-[34px]">
@@ -1503,7 +1494,7 @@ export default function Home() {
                 setFocusTask(nextTask?.title || '');
                 setShowFocus(true);
               }}
-              className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-bold text-teal-800 shadow-sm hover:bg-teal-100"
+              className="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-bold text-blue-800 shadow-sm hover:bg-sky-100"
             >
               <TimerReset className="size-3.5" /> Start focus
             </button>
@@ -1524,7 +1515,7 @@ export default function Home() {
                 onClick={signIn}
                 disabled={authLoading}
                 size="sm"
-                className="bg-teal-700 hover:bg-teal-800"
+                className="bg-blue-700 hover:bg-blue-800"
               >
                 <LogIn className="size-3.5" /> Sign in with Google
               </Button>
@@ -1538,7 +1529,7 @@ export default function Home() {
                     ? 'text-rose-700'
                     : syncState === 'offline'
                       ? 'text-orange-700'
-                      : 'text-teal-700'
+                      : 'text-blue-700'
                 }
               >
                 {syncState === 'saving' ? (
@@ -1582,7 +1573,7 @@ export default function Home() {
                 They didn&apos;t reach your account last time. Restore them to replace what is shown now, or discard them.
               </p>
               <div className="mt-3 flex gap-2">
-                <Button size="sm" onClick={restorePendingBackup} className="bg-teal-700 hover:bg-teal-800">
+                <Button size="sm" onClick={restorePendingBackup} className="bg-blue-700 hover:bg-blue-800">
                   Restore those changes
                 </Button>
                 <Button size="sm" variant="outline" onClick={discardPendingBackup}>
@@ -1619,25 +1610,25 @@ export default function Home() {
               {roadmapProject && (
                 <button
                   onClick={() => setActiveNav('Roadmap')}
-                  className="mb-5 flex w-full items-center justify-between rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-left hover:border-indigo-300"
+                  className="mb-5 flex w-full items-center justify-between rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-left hover:border-blue-300"
                 >
                   <span>
-                    <span className="block text-[12px] font-bold text-indigo-950">Continue your 60-day roadmap</span>
-                    <span className="block text-[12px] text-indigo-800/80">Pick up where you left off.</span>
+                    <span className="block text-[12px] font-bold text-blue-950">Continue your 60-day roadmap</span>
+                    <span className="block text-[12px] text-blue-800/80">Pick up where you left off.</span>
                   </span>
-                  <ChevronRight className="size-4 text-indigo-700" />
+                  <ChevronRight className="size-4 text-blue-700" />
                 </button>
               )}
-              <div className="mb-5 rounded-2xl border border-teal-100 bg-[#eff8f6] p-4 sm:flex sm:items-center sm:justify-between">
+              <div className="mb-5 rounded-2xl border border-sky-100 bg-[#eff8f6] p-4 sm:flex sm:items-center sm:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-teal-700 text-white">
+                  <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-blue-700 text-white">
                     <Target className="size-4" />
                   </div>
                   <div>
-                    <p className="text-[12px] font-bold text-teal-950">
+                    <p className="text-[12px] font-bold text-blue-950">
                       {openTasks.length ? `Next up: ${(openTasks.find((task) => task.priority) ?? openTasks[0]).title}` : 'Your list is clear.'}
                     </p>
-                    <p className="mt-0.5 text-[12px] text-teal-800/75">
+                    <p className="mt-0.5 text-[12px] text-blue-800/75">
                       {openTasks.length
                         ? 'One thing at a time. Start a focus session when you are ready.'
                         : 'Capture something useful, or enjoy the space.'}
@@ -1650,7 +1641,7 @@ export default function Home() {
                       setFocusTask((openTasks.find((task) => task.priority) ?? openTasks[0]).title);
                       setShowFocus(true);
                     }}
-                    className="mt-3 flex shrink-0 items-center gap-1.5 text-xs font-bold text-teal-800 hover:text-teal-950 sm:mt-0"
+                    className="mt-3 flex shrink-0 items-center gap-1.5 text-xs font-bold text-blue-800 hover:text-blue-950 sm:mt-0"
                   >
                     Start focus <ChevronRight className="size-3.5" />
                   </button>
@@ -1706,7 +1697,7 @@ export default function Home() {
                     onSubmit={handleQuickAdd}
                     className="mt-3 flex gap-2 border-t border-stone-100 pt-3"
                   >
-                    <Plus className="mt-2 size-4 text-teal-700" />
+                    <Plus className="mt-2 size-4 text-blue-700" />
                     <Input
                       value={quickAdd}
                       onChange={(event) => setQuickAdd(event.target.value)}
@@ -1717,7 +1708,7 @@ export default function Home() {
                       type="submit"
                       size="sm"
                       variant="ghost"
-                      className="text-teal-700"
+                      className="text-blue-700"
                     >
                       Add
                     </Button>
@@ -1734,7 +1725,7 @@ export default function Home() {
                     <p className="text-[11px] text-stone-500">tasks done</p>
                     <Progress
                       value={tasks.length ? ((tasks.length - openTasks.length) / tasks.length) * 100 : 0}
-                      className="mt-3 [&_[data-slot=progress-indicator]]:bg-teal-600"
+                      className="mt-3 [&_[data-slot=progress-indicator]]:bg-cyan-700"
                     />
                     <p className="mt-3 text-[11px] text-stone-500">
                       {plannedMinutes ? `About ${formatMinutes(plannedMinutes)} of work left.` : 'No time planned yet.'}
@@ -1752,7 +1743,7 @@ export default function Home() {
                       </div>
                       <button
                         onClick={toggleHabit}
-                        className={`grid size-7 place-items-center rounded-full ${habitDone ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-400 hover:bg-teal-50 hover:text-teal-700'}`}
+                        className={`grid size-7 place-items-center rounded-full ${habitDone ? 'bg-cyan-700 text-white' : 'bg-stone-100 text-stone-400 hover:bg-sky-50 hover:text-blue-700'}`}
                         aria-label="Toggle micro commitment"
                       >
                         <Check className="size-3.5" />
@@ -1760,7 +1751,7 @@ export default function Home() {
                     </div>
                     {profile.habit ? (
                       <p
-                        className={`mt-4 text-[12px] font-semibold ${habitDone ? 'text-teal-700 line-through' : 'text-stone-700'}`}
+                        className={`mt-4 text-[12px] font-semibold ${habitDone ? 'text-blue-700 line-through' : 'text-stone-700'}`}
                       >
                         {profile.habit}
                       </p>
@@ -1781,7 +1772,7 @@ export default function Home() {
                           aria-label="Your small daily habit"
                           className="h-8 text-[12px]"
                         />
-                        <Button type="submit" size="sm" className="h-8 bg-teal-700 hover:bg-teal-800">
+                        <Button type="submit" size="sm" className="h-8 bg-blue-700 hover:bg-blue-800">
                           Set
                         </Button>
                       </form>
@@ -1792,7 +1783,7 @@ export default function Home() {
                         return (
                           <div key={day.key} title={`${day.full}: ${done ? 'done' : 'not done'}`}>
                             <div
-                              className={`grid size-5 place-items-center rounded-full text-[9px] font-bold ${done ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-500'}`}
+                              className={`grid size-5 place-items-center rounded-full text-[9px] font-bold ${done ? 'bg-cyan-700 text-white' : 'bg-stone-100 text-stone-500'}`}
                             >
                               {done ? <Check className="size-3" /> : day.label}
                             </div>
@@ -1813,7 +1804,7 @@ export default function Home() {
                     <h2 className="font-display text-lg font-semibold tracking-[-0.035em]">Projects</h2>
                     <button
                       onClick={() => setActiveNav('Projects')}
-                      className="flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-900"
+                      className="flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900"
                     >
                       Open boards <ChevronRight className="size-3.5" />
                     </button>
@@ -1836,7 +1827,7 @@ export default function Home() {
                             </div>
                             <Progress
                               value={amount}
-                              className="[&_[data-slot=progress-indicator]]:bg-indigo-500"
+                              className="[&_[data-slot=progress-indicator]]:bg-blue-500"
                             />
                           </div>
                         );
@@ -1922,7 +1913,7 @@ export default function Home() {
           <div className="mx-auto my-5 w-full max-w-2xl rounded-3xl border border-stone-200 bg-[#fbfaf7] p-6 shadow-2xl sm:my-10 sm:p-8">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-teal-700">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
                   Your calm starting point
                 </p>
                 <h2 className="mt-1 font-display text-2xl font-semibold tracking-[-0.04em]">
@@ -1944,7 +1935,7 @@ export default function Home() {
                         /* optional */
                       }
                     }}
-                    className="font-semibold text-indigo-700 underline underline-offset-2"
+                    className="font-semibold text-blue-700 underline underline-offset-2"
                   >
                     Go straight to the DSA tracker
                   </a>
@@ -1985,7 +1976,7 @@ export default function Home() {
                           : ['tasks', 'habit'],
                     );
                   }}
-                  className="mt-1.5 h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-normal outline-none focus:border-teal-400"
+                  className="mt-1.5 h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-normal outline-none focus:border-cyan-400"
                 >
                   <option>Personal life</option>
                   <option>Work</option>
@@ -2017,10 +2008,10 @@ export default function Home() {
                               : [...items, feature],
                           )
                         }
-                        className={`flex items-center gap-3 rounded-xl border p-3 text-left ${selected ? 'border-teal-400 bg-teal-50' : 'border-stone-200 bg-white'}`}
+                        className={`flex items-center gap-3 rounded-xl border p-3 text-left ${selected ? 'border-cyan-400 bg-sky-50' : 'border-stone-200 bg-white'}`}
                       >
                         <span
-                          className={`grid size-5 place-items-center rounded-full border ${selected ? 'border-teal-600 bg-teal-600 text-white' : 'border-stone-300 text-transparent'}`}
+                          className={`grid size-5 place-items-center rounded-full border ${selected ? 'border-cyan-700 bg-cyan-700 text-white' : 'border-stone-300 text-transparent'}`}
                         >
                           <Check className="size-3" />
                         </span>
@@ -2063,7 +2054,7 @@ export default function Home() {
             <div className="mt-7 flex justify-end">
               <Button
                 onClick={finishSetup}
-                className="bg-teal-700 hover:bg-teal-800"
+                className="bg-blue-700 hover:bg-blue-800"
               >
                 Create my layout <ArrowUpRight className="size-3.5" />
               </Button>
@@ -2075,7 +2066,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 grid place-items-start bg-stone-900/15 px-4 pt-[12vh] backdrop-blur-sm">
           <div className="w-full max-w-xl rounded-2xl border border-stone-200 bg-white p-3 shadow-2xl">
             <div className="flex items-center gap-3 border-b border-stone-100 px-2 pb-3">
-              <Command className="size-4 text-teal-700" />
+              <Command className="size-4 text-blue-700" />
               <Input
                 autoFocus
                 value={quickAdd}
@@ -2100,7 +2091,7 @@ export default function Home() {
               <Button
                 onClick={() => addTask(quickAdd)}
                 size="sm"
-                className="bg-teal-700 hover:bg-teal-800"
+                className="bg-blue-700 hover:bg-blue-800"
               >
                 Add to inbox
               </Button>
@@ -2112,14 +2103,14 @@ export default function Home() {
       {showFocus && (
         <div className="fixed inset-0 z-[80] overflow-y-auto bg-[#102c2b] p-4 text-white">
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <Dumbbell className="absolute -left-4 top-[18%] size-36 -rotate-12 text-teal-300/10" />
+            <Dumbbell className="absolute -left-4 top-[18%] size-36 -rotate-12 text-cyan-300/10" />
             <BookOpen className="absolute right-3 top-20 size-40 rotate-12 text-orange-200/10" />
-            <div className="absolute bottom-8 left-[20%] size-40 rounded-full bg-teal-400/10 blur-3xl" />
+            <div className="absolute bottom-8 left-[20%] size-40 rounded-full bg-cyan-400/10 blur-3xl" />
           </div>
           <div className="relative mx-auto flex min-h-[calc(100vh-2rem)] max-w-3xl flex-col justify-between">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[.18em] text-teal-200">
+                <p className="text-[10px] font-bold uppercase tracking-[.18em] text-sky-200">
                   Focus mode
                 </p>
                 <p className="mt-1 text-sm text-white/60">
@@ -2139,9 +2130,9 @@ export default function Home() {
             </div>
             <div className="my-8 text-center">
               <div className="mx-auto grid size-24 place-items-center rounded-[2rem] border border-white/15 bg-white/10 shadow-2xl">
-                <TimerReset className="size-10 text-teal-200" />
+                <TimerReset className="size-10 text-sky-200" />
               </div>
-              <p className="mt-8 text-sm font-bold uppercase tracking-[.14em] text-teal-200">
+              <p className="mt-8 text-sm font-bold uppercase tracking-[.14em] text-sky-200">
                 {focusTask || 'Choose one task'}
               </p>
               <p className="mt-3 font-display text-7xl font-semibold tracking-[-.08em] sm:text-8xl">
@@ -2160,7 +2151,7 @@ export default function Home() {
               </p>
               <button
                 onClick={() => setFocusQuote((index) => index + 1)}
-                className="mt-3 text-xs font-bold text-teal-200 hover:text-white"
+                className="mt-3 text-xs font-bold text-sky-200 hover:text-white"
               >
                 A fresh focus cue
               </button>
@@ -2194,7 +2185,7 @@ export default function Home() {
                       setFocusRemaining(focusMinutes * 60);
                       setFocusRunning(false);
                     }}
-                    className="bg-teal-300 text-teal-950 hover:bg-teal-200"
+                    className="bg-cyan-300 text-blue-950 hover:bg-sky-200"
                   >
                     <RotateCcw className="size-4" /> Reset session
                   </Button>
@@ -2207,7 +2198,7 @@ export default function Home() {
                           ? startFocus()
                           : setFocusRunning(true)
                     }
-                    className="bg-teal-300 text-teal-950 hover:bg-teal-200"
+                    className="bg-cyan-300 text-blue-950 hover:bg-sky-200"
                   >
                     {focusRunning ? (
                       <>
@@ -2321,7 +2312,7 @@ export default function Home() {
               />
             </label>
             <div className="mt-4 rounded-lg bg-stone-50 p-3 text-[11px] leading-relaxed text-stone-500">
-              <KeyRound className="mr-1 inline size-3.5 text-teal-700" /> Your
+              <KeyRound className="mr-1 inline size-3.5 text-blue-700" /> Your
               key stays in this browser session only. It is not committed to Git
               or stored by ManageMe.
             </div>

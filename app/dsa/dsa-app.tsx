@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LogIn, LogOut } from 'lucide-react';
+import { BrandLogo } from '@/components/brand-logo';
 import { signIn, signOut, useAppUser, type AppUser } from '@/lib/dsa/auth';
 import { toList } from '@/lib/dsa/model';
 import type { DsaList } from '@/lib/dsa/types';
@@ -36,10 +37,8 @@ function Shell({ children, header, wide = false }: { children: React.ReactNode; 
       <header className="dsa-topbar">
         <div className={`mx-auto flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6 ${wide ? '' : 'max-w-6xl'}`}>
           <a href="#/dsa" className="flex items-center gap-2.5 no-underline" aria-label="ManageMe DSA home">
-            <span className="grid size-9 place-items-center rounded-lg bg-[var(--dsa-brand)] text-lg font-bold text-white" aria-hidden>
-              m
-            </span>
-            <span className="text-lg font-bold text-[var(--dsa-ink)]">ManageMe DSA</span>
+            <BrandLogo compact />
+            <span className="rounded-full bg-[var(--dsa-brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--dsa-brand-strong)]">DSA</span>
           </a>
           {header}
         </div>

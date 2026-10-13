@@ -18,15 +18,15 @@
 }
 
 :root {
-  --background: #f6f5f1;
-  --foreground: #292724;
-  --primary: #0f766e;
+  --background: #f4f8ff;
+  --foreground: #0b2454;
+  --primary: #1769d8;
   --primary-foreground: #ffffff;
-  --muted: #f2f1ed;
-  --muted-foreground: #78716c;
-  --border: #e7e5e4;
-  --input: #e7e5e4;
-  --ring: #5eead4;
+  --muted: #eaf4ff;
+  --muted-foreground: #526783;
+  --border: #dce8f5;
+  --input: #c8d8e9;
+  --ring: #38c9d0;
   --font-geist-sans: Arial, Helvetica, sans-serif;
 }
 * {
@@ -46,6 +46,48 @@ button {
 }
 .font-display {
   font-family: Georgia, 'Times New Roman', serif;
+}
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: max-content;
+  flex: none;
+  line-height: 1;
+}
+.brand-logo-mark,
+.brand-logo-wordmark {
+  display: block;
+  flex: none;
+  overflow: hidden;
+  background-image: url('/brand/manageme-logo.png');
+  background-repeat: no-repeat;
+  background-color: #fff;
+}
+.brand-logo-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-size: 90px 90px;
+  background-position: -25px -16px;
+}
+.brand-logo-wordmark {
+  width: 156px;
+  height: 32px;
+  background-size: 193px 193px;
+  background-position: -19px -125px;
+}
+.brand-logo-compact .brand-logo-mark {
+  width: 34px;
+  height: 34px;
+  background-size: 76px 76px;
+  background-position: -21px -13px;
+}
+.brand-logo-compact .brand-logo-wordmark {
+  width: 139px;
+  height: 29px;
+  background-size: 171px 171px;
+  background-position: -17px -111px;
 }
 .tag-indigo {
   background: #eef2ff;
@@ -389,23 +431,23 @@ button {
    focus everywhere, and colour never the only signal. Figtree for the interface (clear, open
    letterforms with plain zeros), JetBrains Mono for code. */
 .dsa-root {
-  --dsa-bg: #f4f5f2;
+  --dsa-bg: #f3f8ff;
   --dsa-surface: #ffffff;
-  --dsa-sidebar: #fbfbf9;
-  --dsa-soft: #eef1ee;
-  --dsa-ink: #141a18;
-  --dsa-muted: #55615c;
-  --dsa-line: #dfe4e0;
-  --dsa-line-strong: #c5cdc8;
-  --dsa-brand: #0d6b5f;
-  --dsa-brand-strong: #0a564c;
-  --dsa-brand-soft: #e3f1ed;
-  --dsa-done: #157a4a;
-  --dsa-revised: #4338ca;
+  --dsa-sidebar: #f8fbff;
+  --dsa-soft: #eaf4ff;
+  --dsa-ink: #0b2454;
+  --dsa-muted: #526783;
+  --dsa-line: #dce8f5;
+  --dsa-line-strong: #b9cde3;
+  --dsa-brand: #1769d8;
+  --dsa-brand-strong: #0f4fae;
+  --dsa-brand-soft: #e6f2ff;
+  --dsa-done: #087e85;
+  --dsa-revised: #4258c9;
   --dsa-warn: #9a5200;
   --dsa-danger: #b42318;
-  --dsa-focus: #f5b301;
-  --dsa-shadow: 0 1px 2px rgb(20 26 24 / 0.05), 0 8px 24px -12px rgb(20 26 24 / 0.12);
+  --dsa-focus: #32c2cb;
+  --dsa-shadow: 0 1px 2px rgb(11 36 84 / 0.04), 0 8px 24px -12px rgb(11 36 84 / 0.12);
   min-height: 100vh;
   background: var(--dsa-bg);
   color: var(--dsa-ink);
@@ -416,19 +458,19 @@ button {
 }
 @media (prefers-color-scheme: dark) {
   .dsa-root {
-    --dsa-bg: #0f1312;
-    --dsa-surface: #171c1a;
-    --dsa-sidebar: #131816;
-    --dsa-soft: #212826;
-    --dsa-ink: #eef3f0;
-    --dsa-muted: #a9b6b0;
-    --dsa-line: #2a3330;
-    --dsa-line-strong: #3a4541;
-    --dsa-brand: #34b3a3;
-    --dsa-brand-strong: #6bd3c5;
-    --dsa-brand-soft: #16302b;
-    --dsa-done: #5ad19a;
-    --dsa-revised: #a9adff;
+    --dsa-bg: #0d1730;
+    --dsa-surface: #14213d;
+    --dsa-sidebar: #101c36;
+    --dsa-soft: #1b3150;
+    --dsa-ink: #eff7ff;
+    --dsa-muted: #aebfd4;
+    --dsa-line: #2d4362;
+    --dsa-line-strong: #426081;
+    --dsa-brand: #58a5ff;
+    --dsa-brand-strong: #91c8ff;
+    --dsa-brand-soft: #18395f;
+    --dsa-done: #4ccecb;
+    --dsa-revised: #a9b8ff;
     --dsa-warn: #f2b25c;
     --dsa-danger: #ff8a80;
     --dsa-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
@@ -554,7 +596,7 @@ button {
 }
 @media (prefers-color-scheme: dark) {
   .dsa-btn-primary {
-    color: #06201c;
+    color: #071a37;
   }
 }
 .dsa-btn-secondary {

@@ -40,6 +40,10 @@ pnpm test:rules           # Firestore rules, needs Java (downloads the emulator 
 
 ## Sheets
 
+- `lib/dsa/sheets/strivers-a2z.json` — Striver's A2Z DSA Sheet (495 items), grouped by step
+  and topic, with Striver's videos.
+- `lib/dsa/sheets/neetcode-150.json` — NeetCode 150, grouped by topic, with NeetCode
+  explanations and Striver's videos where available.
 - `lib/dsa/sheets/strivers-180.json` — Striver's 180, copied from takeuforward.org (pattern →
   sub-pattern → problem, with Striver's video as the default reference link).
 - LeetCode Top Interview Questions (easy, medium, hard) are bundled, so importing those links works

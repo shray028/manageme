@@ -190,7 +190,7 @@ export function ListView({ list, store, selectedKey, darkEditor, onToggleDark, o
       <aside className={`dsa-sidebar ${selected ? 'dsa-mobile-hidden' : ''}`} aria-label="Problems">
         <div className="dsa-sidebar-head">
           <button type="button" className="dsa-text-btn inline-flex items-center gap-1 text-sm" onClick={onBack}>
-            <ArrowLeft className="size-4" aria-hidden /> All lists
+            <ArrowLeft className="size-4" aria-hidden /> Practice sheets
           </button>
           {renaming ? (
             <form
@@ -212,9 +212,7 @@ export function ListView({ list, store, selectedKey, darkEditor, onToggleDark, o
           ) : (
             <div className="mt-2 flex items-start justify-between gap-2">
               <h1 className="dsa-sidebar-title">{list.title}</h1>
-              <button type="button" className="dsa-text-btn shrink-0 text-sm" onClick={() => setRenaming(true)}>
-                Rename
-              </button>
+              {!sheet && <button type="button" className="dsa-text-btn shrink-0 text-sm" onClick={() => setRenaming(true)}>Rename</button>}
             </div>
           )}
 

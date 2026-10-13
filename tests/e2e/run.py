@@ -67,9 +67,9 @@ SHEET_TITLES = ['LeetCode Top Interview Questions (Easy collection)', "Striver's
 
 
 def start_sheet(page: Page, index: int):
-    card = page.locator('li.dsa-panel').filter(has=page.get_by_role('heading', name=SHEET_TITLES[index], exact=True))
-    card.get_by_role('button', name='Start this sheet').or_(card.get_by_role('button', name='Open')).click()
-    expect(page.get_by_role('link', name='All lists').or_(page.get_by_role('button', name='All lists'))).to_be_visible()
+    card = page.locator('li.dsa-sheet-card').filter(has=page.get_by_role('heading', name=SHEET_TITLES[index], exact=True))
+    card.get_by_role('button', name='Start this sheet').or_(card.get_by_role('button', name='Open', exact=True)).click()
+    expect(page.get_by_role('button', name='Practice sheets')).to_be_visible()
 
 
 def row(page: Page, title: str):
@@ -109,6 +109,34 @@ def first_visit_shows_simple_dsa_start(page: Page):
     expect(page.get_by_text('LeetCode Top Interview Questions (Easy collection)')).to_be_visible()
     expect(page.get_by_text("Striver's 180 – Master DSA Patterns")).to_be_visible()
     page.screenshot(path=str(SHOTS / 'home.png'), full_page=True)
+
+
+@test
+def theme_follows_device_and_persists_across_dsa_screens(page: Page):
+    page.emulate_media(color_scheme='dark')
+    page.goto(f'{BASE}/#/dsa')
+    expect(page.locator('.dsa-root')).to_have_attribute('data-theme', 'dark')
+    page.add_script_tag(content=(ROOT / 'node_modules' / 'axe-core' / 'axe.min.js').read_text())
+    contrast = page.evaluate("""async () => (await axe.run(document, {runOnly: ['color-contrast']})).violations.map(v => ({id:v.id, sample:v.nodes[0].html}))""")
+    assert not contrast, contrast
+    sign_in(page)
+    expect(page.locator('.dsa-root')).to_have_attribute('data-theme', 'dark')
+    start_sheet(page, 0)
+    primary = page.get_by_role('button', name=re.compile('Continue with'))
+    expect(primary).to_be_visible()
+    assert primary.evaluate('(el) => getComputedStyle(el).color') == 'rgb(255, 255, 255)'
+    page.screenshot(path=str(SHOTS / 'dark-sheet.png'))
+    open_row(page, 'Two Sum')
+    page.screenshot(path=str(SHOTS / 'dark-problem.png'))
+
+    page.get_by_role('button', name='Switch to light theme').click()
+    expect(page.locator('.dsa-root')).to_have_attribute('data-theme', 'light')
+    page.reload()
+    expect(page.locator('.dsa-root')).to_have_attribute('data-theme', 'light')
+    page.get_by_role('button', name='Practice sheets').click()
+    page.get_by_role('button', name='Switch to dark theme').click()
+    expect(page.locator('.dsa-root')).to_have_attribute('data-theme', 'dark')
+    page.screenshot(path=str(SHOTS / 'dark-home.png'), full_page=True)
 
 
 @test
@@ -250,11 +278,11 @@ def add_problems_by_name_and_by_leetcode_link(page: Page):
 @test
 def add_by_link_fills_number_and_title_when_leetcode_answers(page: Page):
     sign_in(page)
+    start_sheet(page, 0)
     page.route('**/api/leetcode', lambda route: route.fulfill(
         status=200, content_type='application/json',
         body=json.dumps({'kind': 'problem', 'problem': {'key': 'koko-eating-bananas', 'title': 'Koko Eating Bananas', 'number': '875', 'difficulty': 'Medium', 'url': 'https://leetcode.com/problems/koko-eating-bananas/', 'group': 'x'}}),
     ))
-    page.get_by_role('button', name='Start an empty list').click()
     page.get_by_label('Problem name or LeetCode link').fill('https://leetcode.com/problems/koko-eating-bananas/')
     page.get_by_role('button', name='Add problem').click()
     expect(page.get_by_text('Added 875. Koko Eating Bananas.')).to_be_visible()
@@ -264,34 +292,41 @@ def add_by_link_fills_number_and_title_when_leetcode_answers(page: Page):
 
 
 @test
-def import_the_leetcode_link_from_the_study_group(page: Page):
+def bundled_leetcode_sheet_can_be_grouped_and_reopened(page: Page):
     sign_in(page)
-    page.get_by_label('LeetCode list link').fill('https://leetcode.com/explore/interview/card/top-interview-questions-easy/')
-    page.get_by_role('button', name='Import list').click()
+    start_sheet(page, 0)
     expect(page.get_by_role('progressbar', name='Problems done').and_(page.locator('[aria-valuetext=\"0 of 48 done\"]'))).to_be_visible()
     expect(page.get_by_role('button', name='Array', exact=False).first).to_be_visible()
     page.get_by_label('Group by').select_option('difficulty')
     expect(page.locator('.dsa-group-head').first).to_contain_text('Easy')
     expect(page.locator('.dsa-group-head').nth(1)).to_contain_text('Medium')
     page.screenshot(path=str(SHOTS / 'by-difficulty.png'))
-    # Importing again opens the same list instead of creating a duplicate.
-    page.get_by_role('button', name='All lists').click()
-    page.get_by_label('LeetCode list link').fill('leetcode.com/explore/interview/card/top-interview-questions-easy')
-    page.get_by_role('button', name='Import list').click()
-    page.get_by_role('button', name='All lists').click()
-    expect(page.get_by_role('button', name='Open list')).to_have_count(1)
+    page.get_by_role('button', name='Practice sheets').click()
+    expect(page.get_by_role('button', name='Open sheet')).to_have_count(1)
+    start_sheet(page, 0)
+    page.get_by_role('button', name='Practice sheets').click()
+    expect(page.get_by_role('button', name='Open sheet')).to_have_count(1)
 
 
 @test
-def paste_links_to_create_a_list(page: Page):
+def existing_custom_list_remains_accessible(page: Page):
     sign_in(page)
-    page.get_by_label('List name').fill('Study group week 1')
-    page.get_by_label('Paste problem links').fill(
-        'Day 1: https://leetcode.com/problems/two-sum/\nDay 2: https://leetcode.com/problems/valid-anagram/ and again https://leetcode.com/problems/two-sum/'
-    )
-    page.on('dialog', lambda d: d.accept())
-    page.get_by_role('button', name='Create list from links').click()
-    expect(page.get_by_role('heading', name='Study group week 1').first).to_be_visible(timeout=60000)
+    page.evaluate("""() => {
+      const key = 'manageme:e2e:server:v1';
+      const docs = JSON.parse(localStorage.getItem(key) || '{}');
+      docs['users/test-user/dsaLists/older-custom-list'] = {
+        title: 'Study group week 1', source: {kind: 'custom'}, createdAt: 1, archived: false,
+        problems: [
+          {key: 'two-sum', title: 'Two Sum', group: 'Practice', url: 'https://leetcode.com/problems/two-sum/'},
+          {key: 'valid-anagram', title: 'Valid Anagram', group: 'Practice', url: 'https://leetcode.com/problems/valid-anagram/'}
+        ], extraProblems: [], hiddenKeys: []
+      };
+      localStorage.setItem(key, JSON.stringify(docs));
+    }""")
+    page.reload()
+    expect(page.get_by_role('heading', name='Continue practising')).to_be_visible()
+    page.get_by_role('button', name='Open sheet').click()
+    expect(page.get_by_role('heading', name='Study group week 1').first).to_be_visible()
     expect(page.get_by_test_id('problem-item')).to_have_count(2)
     expect(row(page, 'Two Sum')).to_be_visible()
     expect(row(page, 'Valid Anagram')).to_be_visible()
@@ -303,7 +338,7 @@ def progress_is_shared_between_lists_for_the_same_problem(page: Page):
     start_sheet(page, 0)
     tick(page, 'Two Sum')
     wait_saved(page)
-    page.get_by_role('button', name='All lists').click()
+    page.get_by_role('button', name='Practice sheets').click()
     start_sheet(page, 1)
     expect(row(page, 'Two Sum').get_by_role('checkbox', name='Done: Two Sum')).to_have_attribute('aria-checked', 'true')
 
@@ -321,11 +356,8 @@ def removing_things_never_deletes_notes(page: Page):
     r = open_row(page, 'Rotate Array')
     expect(r.get_by_label('When I solved it')).to_have_value('Reverse all, then reverse both parts.')
 
-    page.get_by_role('button', name='All lists').click()
-    page.get_by_role('button', name='Remove').first.click()
-    expect(page.get_by_role('heading', name='Removed lists')).to_be_visible()
-    page.get_by_role('button', name='Bring back').click()
-    page.get_by_role('button', name='Open list').click()
+    page.get_by_role('button', name='Practice sheets').click()
+    page.get_by_role('button', name='Open sheet').click()
     r = open_row(page, 'Rotate Array')
     expect(r.get_by_label('When I solved it')).to_have_value('Reverse all, then reverse both parts.')
     wait_saved(page)
@@ -388,7 +420,8 @@ def backup_download_and_restore(page: Page):
     r = open_row(page, 'Fizz Buzz')
     r.get_by_label('When I solved it').fill('Check 15 first.')
     wait_saved(page)
-    page.get_by_role('button', name='All lists').click()
+    page.get_by_role('button', name='Practice sheets').click()
+    page.get_by_text('Data & backup').click()
     with page.expect_download() as info:
         page.get_by_role('button', name='Download backup').click()
     path = info.value.path()
@@ -397,11 +430,12 @@ def backup_download_and_restore(page: Page):
     assert backup['dsaProgress']['fizz-buzz']['completedNote'] == 'Check 15 first.'
 
     # Lose the note (e.g. edited on another device by mistake), then restore from the file.
-    page.get_by_role('button', name='Open list').click()
+    page.get_by_role('button', name='Open sheet').click()
     r = open_row(page, 'Fizz Buzz')
     r.get_by_label('When I solved it').fill('')
     wait_saved(page)
-    page.get_by_role('button', name='All lists').click()
+    page.get_by_role('button', name='Practice sheets').click()
+    page.get_by_text('Data & backup').click()
     page.get_by_label('Choose a backup file').set_input_files(path)
     expect(page.get_by_text('Restoring will add or update', exact=False)).to_be_visible()
     page.get_by_role('button', name='Restore', exact=True).click()
@@ -462,7 +496,7 @@ def accessibility_scan(page: Page):
     def scan(label):
         page.add_script_tag(content=axe)
         result = page.evaluate("""async () => { const r = await axe.run(document, { runOnly: ['wcag2a','wcag2aa','wcag21aa','best-practice'] });
-            return r.violations.map(v => ({ id: v.id, impact: v.impact, n: v.nodes.length, sample: v.nodes[0].html.slice(0, 160) })); }""")
+            return r.violations.map(v => ({ id: v.id, impact: v.impact, n: v.nodes.length, sample: v.nodes[0].html.slice(0, 160), details: v.nodes.slice(0, 6).map(n => ({target:n.target, summary:n.failureSummary})) })); }""")
         for v in result:
             issues.append((label, v))
 
@@ -470,6 +504,11 @@ def accessibility_scan(page: Page):
     start_sheet(page, 1)
     open_row(page, 'Majority Element-I')
     scan('list with open problem')
+    page.get_by_role('button', name='Switch to dark theme').click()
+    page.wait_for_timeout(250)  # Let the 120ms row-color transitions settle before measuring contrast.
+    scan('dark list with open problem')
+    page.get_by_role('button', name='Practice sheets').click()
+    scan('dark home')
     serious = [i for i in issues if i[1]['impact'] in ('serious', 'critical')]
     for i in issues:
         print('   axe:', i)
@@ -480,8 +519,10 @@ def accessibility_scan(page: Page):
 def phone_layout(page: Page):
     page.set_viewport_size({'width': 390, 'height': 844})
     sign_in(page)
+    page.get_by_role('button', name='Switch to dark theme').click()
+    expect(page.locator('.dsa-root')).to_have_attribute('data-theme', 'dark')
     start_sheet(page, 1)
-    page.screenshot(path=str(SHOTS / 'phone-list.png'))
+    page.screenshot(path=str(SHOTS / 'phone-list-dark.png'))
     open_row(page, 'Majority Element-I')
     # On a phone the list and the problem are separate screens.
     expect(page.get_by_role('navigation', name='Problem list')).to_be_hidden()
@@ -494,13 +535,24 @@ def phone_layout(page: Page):
 
 
 @test
-def workspace_links_to_dsa_and_back(page: Page):
+def landing_keeps_visitors_focused_on_dsa(page: Page):
+    page.emulate_media(color_scheme='dark')
     page.goto(f'{BASE}/')
+    expect(page.locator('.landing-root')).to_have_attribute('data-theme', 'dark')
+    expect(page.get_by_text('Your workspace')).to_have_count(0)
+    assert page.get_by_role('link', name='Track DSA practice').evaluate('(el) => getComputedStyle(el).color') == 'rgb(255, 255, 255)'
+    page.add_script_tag(content=(ROOT / 'node_modules' / 'axe-core' / 'axe.min.js').read_text())
+    contrast = page.evaluate("""async () => (await axe.run(document, {runOnly: ['color-contrast']})).violations.map(v => ({id:v.id, sample:v.nodes[0].html}))""")
+    assert not contrast, contrast
+    page.screenshot(path=str(SHOTS / 'dark-landing.png'), full_page=True)
+    page.get_by_role('button', name='Switch to light theme').click()
+    expect(page.locator('.landing-root')).to_have_attribute('data-theme', 'light')
     page.get_by_role('link', name='Track DSA practice').first.click()
     expect(page).to_have_url(f'{BASE}/#/dsa')
+    expect(page.locator('.dsa-root')).to_have_attribute('data-theme', 'light')
     sign_in(page)
-    page.get_by_role('link', name='Full workspace').click()
-    expect(page).to_have_url(f'{BASE}/#/')
+    expect(page.get_by_role('link', name='Full workspace')).to_have_count(0)
+    expect(page.get_by_role('link', name='Import a list')).to_have_count(0)
     # A DSA-only person who comes back to the bare address lands on DSA.
     page.evaluate("localStorage.setItem('manageme:start', 'dsa')")
     page.goto(f'{BASE}/')

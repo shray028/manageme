@@ -1,10 +1,9 @@
-import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, BookOpen, Cloud, Download, LayoutGrid, Link2, ShieldCheck, Upload } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { ArrowRight, BookOpen, Cloud, Download, LayoutGrid, ShieldCheck, Upload } from 'lucide-react';
 import { SHEETS, getSheet } from '@/lib/dsa/sheets';
 import { listProblems, newId, toProgress } from '@/lib/dsa/model';
-import { importFromUrl, problemsFromText } from '@/lib/dsa/client-import';
 import { buildBackup, planRestore, type RestorePlan } from '@/lib/dsa/backup';
-import type { DsaList, SheetProblem } from '@/lib/dsa/types';
+import type { DsaList } from '@/lib/dsa/types';
 import type { DsaStore } from './use-dsa';
 
 type Props = {
@@ -17,9 +16,9 @@ type Props = {
 };
 
 export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }: Props) {
-  const createList = (title: string, source: DsaList['source'], problems: SheetProblem[] = []) => {
+  const createList = (title: string, source: DsaList['source']) => {
     const id = newId('list');
-    store.update('dsaLists', id, { title: title.slice(0, 300), source, problems, extraProblems: [], hiddenKeys: [], archived: false, createdAt: Date.now() });
+    store.update('dsaLists', id, { title: title.slice(0, 300), source, problems: [], extraProblems: [], hiddenKeys: [], archived: false, createdAt: Date.now() });
     return id;
   };
 
@@ -52,9 +51,7 @@ export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }:
       <nav className="dsa-dashboard-nav" aria-label="DSA sections">
         <p className="dsa-overline">NAVIGATE</p>
         <a className="is-current" href="#dsa-main"><LayoutGrid size={17} aria-hidden /> Overview</a>
-        <a href="#my-lists"><BookOpen size={17} aria-hidden /> Your lists</a>
         <a href="#sheets"><LayoutGrid size={17} aria-hidden /> Practice sheets</a>
-        <a href="#import"><Link2 size={17} aria-hidden /> Import a list</a>
         <div className="dsa-dashboard-nav-note"><ShieldCheck size={18} aria-hidden /><span>Your progress stays with your account.</span></div>
       </nav>
 
@@ -74,8 +71,8 @@ export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }:
         </div>
 
         {lists.length > 0 && (
-          <section id="my-lists" aria-labelledby="my-lists-title" className="dsa-dashboard-section">
-            <div className="dsa-section-heading"><div><p className="dsa-overline">PICK UP WHERE YOU ARE</p><h2 id="my-lists-title" className="dsa-h2">Your lists</h2></div><span>{lists.length} {lists.length === 1 ? 'list' : 'lists'}</span></div>
+          <section aria-labelledby="continue-title" className="dsa-dashboard-section">
+            <div className="dsa-section-heading"><div><p className="dsa-overline">PICK UP WHERE YOU ARE</p><h2 id="continue-title" className="dsa-h2">Continue practising</h2></div><span>{lists.length} {lists.length === 1 ? 'sheet' : 'sheets'}</span></div>
             <ul className="dsa-my-lists">
               {lists.map((list) => <ListCard key={list.id} list={list} store={store} onOpen={() => onOpen(list.id)} />)}
             </ul>
@@ -84,7 +81,7 @@ export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }:
 
         <section id="sheets" aria-labelledby="sheets-title" className="dsa-dashboard-section">
           <div className="dsa-section-heading"><div><p className="dsa-overline">A CLEAR PLACE TO BEGIN</p><h2 id="sheets-title" className="dsa-h2">{lists.length ? 'Explore another sheet' : 'Start with a sheet'}</h2></div></div>
-          <p className="dsa-section-description">Every problem links to its question. Add your own problems whenever you need to.</p>
+          <p className="dsa-section-description">Choose a trusted sheet. Every problem links to its original question.</p>
           <ul className="dsa-sheet-grid">
             {SHEETS.map((sheet) => {
               const started = lists.some((list) => list.source.kind === 'sheet' && list.source.sheetId === sheet.id);
@@ -101,34 +98,29 @@ export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }:
           </ul>
         </section>
 
-        <div id="import" className="dsa-dashboard-section">
-          <ImportSection
-            onSheet={startSheet}
-            onList={(title, url, problems) => onOpen(createList(title, { kind: 'leetcode', url }, problems))}
-            onPasted={(title, problems) => onOpen(createList(title, { kind: 'custom' }, problems))}
-            onEmpty={(title) => onOpen(createList(title, { kind: 'custom' }))}
-          />
-        </div>
-
-        {archived.length > 0 && (
-          <section aria-labelledby="archived" className="dsa-dashboard-section">
-            <h2 id="archived" className="dsa-h2 mb-2">Removed lists</h2>
-            <p className="mb-3 text-[var(--dsa-muted)]">Removing a list never deletes your notes. Bring a list back any time.</p>
-            <ul className="space-y-2">
-              {archived.map((list) => (
-                <li key={list.id} className="dsa-panel flex flex-wrap items-center justify-between gap-3 !py-3"><span>{list.title}</span><button type="button" className="dsa-btn-secondary" onClick={() => store.update('dsaLists', list.id, { archived: false })}>Bring back</button></li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <div className="dsa-dashboard-section"><BackupSection store={store} email={userEmail} /></div>
+        <details className="dsa-dashboard-section dsa-data-details">
+          <summary>Data &amp; backup</summary>
+          <div className="dsa-data-details-content">
+            {archived.length > 0 && (
+              <section aria-labelledby="archived">
+                <h2 id="archived" className="dsa-h2 mb-2">Previously removed sheets</h2>
+                <p className="mb-3 text-[var(--dsa-muted)]">Your notes are kept. Bring a sheet back any time.</p>
+                <ul className="space-y-2">
+                  {archived.map((list) => (
+                    <li key={list.id} className="dsa-panel flex flex-wrap items-center justify-between gap-3 !py-3"><span>{list.title}</span><button type="button" className="dsa-btn-secondary" onClick={() => store.update('dsaLists', list.id, { archived: false })}>Bring back</button></li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            <BackupSection store={store} email={userEmail} />
+          </div>
+        </details>
       </div>
 
       <aside className="dsa-dashboard-rail" aria-label="Practice summary">
         <p className="dsa-overline">YOUR PROGRESS</p>
         <div className="dsa-rail-card"><p className="dsa-rail-card-label">Problems done</p><strong>{practiceStats.done}<span> / {practiceStats.problems}</span></strong><div className="dsa-progress" role="progressbar" aria-label="Overall problem progress" aria-valuemin={0} aria-valuemax={practiceStats.problems} aria-valuenow={practiceStats.done}><span style={{ width: `${practiceStats.problems ? Math.round(practiceStats.done / practiceStats.problems * 100) : 0}%` }} /></div><p>Every problem you return to adds up.</p></div>
-        <div className="dsa-rail-tip"><Cloud size={20} aria-hidden /><div><strong>Saved as you go</strong><p>Your lists and notes sync to your account. You can also download a backup below.</p></div></div>
+        <div className="dsa-rail-tip"><Cloud size={20} aria-hidden /><div><strong>Saved as you go</strong><p>Your sheets and notes sync to your account. A backup is available below.</p></div></div>
       </aside>
     </div>
   );
@@ -143,129 +135,8 @@ function ListCard({ list, store, onOpen }: { list: DsaList; store: DsaStore; onO
     <li className="dsa-panel dsa-list-card">
       <span className="dsa-list-card-mark" aria-hidden><BookOpen size={20} /></span>
       <div className="dsa-list-card-body"><h3 className="dsa-h3">{list.title}</h3><p>{done} of {problems.length} done</p><div className="dsa-progress" role="progressbar" aria-label={`${list.title} progress`} aria-valuemin={0} aria-valuemax={problems.length} aria-valuenow={done}><div style={{ width: `${percent}%` }} /></div></div>
-      <button type="button" className="dsa-list-card-open" onClick={onOpen}>Open list <ArrowRight size={17} aria-hidden /></button>
-      <button type="button" className="dsa-list-card-remove" onClick={() => {
-        if (window.confirm(`Remove “${list.title}” from your lists?\n\nYour notes and progress are kept, and you can bring the list back from “Removed lists”.`)) store.update('dsaLists', list.id, { archived: true });
-      }}>Remove</button>
+      <button type="button" className="dsa-list-card-open" onClick={onOpen}>Open sheet <ArrowRight size={17} aria-hidden /></button>
     </li>
-  );
-}
-
-function ImportSection({
-  onSheet,
-  onList,
-  onPasted,
-  onEmpty,
-}: {
-  onSheet: (sheetId: string) => void;
-  onList: (title: string, url: string, problems: SheetProblem[]) => void;
-  onPasted: (title: string, problems: SheetProblem[]) => void;
-  onEmpty: (title: string) => void;
-}) {
-  const id = useId();
-  const [url, setUrl] = useState('');
-  const [text, setText] = useState('');
-  const [name, setName] = useState('');
-  const [busy, setBusy] = useState<'' | 'url' | 'paste'>('');
-  const [message, setMessage] = useState<{ tone: 'error' | 'warn' | 'ok'; text: string } | null>(null);
-
-  const importUrl = async (event: FormEvent) => {
-    event.preventDefault();
-    setBusy('url');
-    setMessage(null);
-    try {
-      const outcome = await importFromUrl(url);
-      if (outcome.kind === 'sheet') onSheet(outcome.sheetId);
-      else if (outcome.kind === 'list') {
-        onList(outcome.title, outcome.sourceUrl, outcome.problems);
-        if (outcome.warnings.length) window.alert(outcome.warnings.join('\n'));
-      } else onPasted(outcome.problem.title, [outcome.problem]);
-      setUrl('');
-    } catch (error) {
-      setMessage({ tone: 'error', text: `${(error as Error).message} You can also paste the problem links in the box below.` });
-    } finally {
-      setBusy('');
-    }
-  };
-
-  const importText = async (event: FormEvent) => {
-    event.preventDefault();
-    setMessage(null);
-    setBusy('paste');
-    try {
-      const results = await problemsFromText(text, 'Problems', (done, total) => setMessage({ tone: 'ok', text: `Looking up ${done} of ${total}…` }));
-      if (!results.length) {
-        setMessage({ tone: 'error', text: 'No LeetCode problem links found. Links look like https://leetcode.com/problems/two-sum/' });
-        return;
-      }
-      const unverified = results.filter((result) => !result.verified).length;
-      onPasted(name.trim() || 'My problem list', results.map((result) => result.problem));
-      if (unverified) window.alert(`${unverified} problem name${unverified === 1 ? '' : 's'} came from the link because LeetCode couldn’t be reached. You can rename them later.`);
-      setText('');
-      setName('');
-      setMessage(null);
-    } finally {
-      setBusy('');
-    }
-  };
-
-  return (
-    <section aria-labelledby={`${id}-title`} className="space-y-4">
-      <div>
-        <h2 id={`${id}-title`} className="dsa-h2">
-          Import a list
-        </h2>
-        <p className="text-[var(--dsa-muted)]">Bring in a LeetCode Explore card or study plan, or paste any problem links.</p>
-      </div>
-      <form className="dsa-panel grid gap-2" onSubmit={importUrl}>
-        <label htmlFor={`${id}-url`} className="dsa-label">
-          LeetCode list link
-        </label>
-        <div className="flex flex-wrap gap-2">
-          <input
-            id={`${id}-url`}
-            className="dsa-input min-w-[260px] flex-1"
-            value={url}
-            onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://leetcode.com/explore/interview/card/top-interview-questions-easy/"
-            inputMode="url"
-            required
-          />
-          <button className="dsa-btn-primary" type="submit" disabled={busy !== ''}>
-            {busy === 'url' ? 'Importing… (can take a minute)' : 'Import list'}
-          </button>
-        </div>
-        {message && (
-          <p role={message.tone === 'error' ? 'alert' : 'status'} className={`font-semibold ${message.tone === 'error' ? 'text-[var(--dsa-danger)]' : 'text-[var(--dsa-muted)]'}`}>
-            {message.text}
-          </p>
-        )}
-      </form>
-      <form className="dsa-panel grid gap-2" onSubmit={importText}>
-        <label htmlFor={`${id}-name`} className="dsa-label">
-          List name
-        </label>
-        <input id={`${id}-name`} className="dsa-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Study group – week 1" />
-        <label htmlFor={`${id}-text`} className="dsa-label mt-2">
-          Paste problem links
-        </label>
-        <textarea
-          id={`${id}-text`}
-          className="dsa-input min-h-[110px]"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={'https://leetcode.com/problems/two-sum/\nhttps://leetcode.com/problems/valid-anagram/'}
-        />
-        <div className="flex flex-wrap gap-2">
-          <button className="dsa-btn-primary" type="submit" disabled={busy !== '' || !text.trim()}>
-            {busy === 'paste' ? 'Creating…' : 'Create list from links'}
-          </button>
-          <button type="button" className="dsa-btn-secondary" disabled={busy !== ''} onClick={() => onEmpty(name.trim() || 'My problem list')}>
-            Start an empty list
-          </button>
-        </div>
-      </form>
-    </section>
   );
 }
 

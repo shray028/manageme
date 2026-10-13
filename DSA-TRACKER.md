@@ -3,6 +3,13 @@
 Open it at `/#/dsa`. People who pick "Track DSA practice" on the start page (or open the DSA
 tracker once) land straight on it next time.
 
+The public navigation currently focuses on the bundled practice sheets. Existing custom and
+imported lists remain visible under **Continue practising** so their notes and progress stay
+available, but new list import and workspace entry points are hidden for now. **Data & backup**
+holds the export, restore, and previously removed sheet controls. The theme switch in the header
+follows the device's light/dark preference until a person chooses a theme; that choice stays on
+this device and does not change any synced DSA data.
+
 ## One-time setup (required)
 
 The tracker stores data in two new Firestore sub-collections under each user

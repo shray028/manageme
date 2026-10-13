@@ -246,30 +246,32 @@ export function ListView({ list, store, selectedKey, darkEditor, onToggleDark, o
             <label htmlFor="problem-search" className="sr-only">
               Search problems and notes
             </label>
-            <input id="problem-search" type="search" className="dsa-input !py-2 !pl-9" placeholder="Search problems and notes" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <input id="problem-search" type="search" className="dsa-input dsa-search !pl-9" placeholder="Search problems and notes" value={query} onChange={(event) => setQuery(event.target.value)} />
           </div>
 
-          <div className="dsa-filters mt-3" role="group" aria-label="Show">
+          <div className="dsa-segmented mt-3" role="group" aria-label="Show">
             {FILTERS.map(([value, label]) => {
               const count = value === 'due' ? stats.due : value === 'bookmarked' ? stats.weak : null;
               return (
                 <button
                   key={value}
                   type="button"
-                  className={`dsa-chip ${prefs.filter === value ? 'is-on' : ''}`}
+                  className={`dsa-seg ${prefs.filter === value ? 'is-on' : ''}`}
                   aria-pressed={prefs.filter === value}
+                  aria-label={count ? `${label} (${count})` : label}
+                  title={value === 'bookmarked' ? 'Weak list' : undefined}
                   onClick={() => setPrefs((current) => ({ ...current, filter: value }))}
                 >
-                  {label}
-                  {count ? ` (${count})` : ''}
+                  {value === 'bookmarked' ? 'Weak' : label}
+                  {count ? <span className="dsa-seg-count" aria-hidden>{count}</span> : null}
                 </button>
               );
             })}
           </div>
 
-          <label className="mt-2 flex items-center justify-end gap-2 text-sm">
-            <span className="text-[var(--dsa-muted)]">Group by</span>
-            <select className="dsa-select !py-1" value={prefs.group} onChange={(event) => setPrefs((current) => ({ ...current, group: event.target.value as GroupMode }))}>
+          <label className="dsa-groupby">
+            <span>Group by</span>
+            <select className="dsa-select-sm" value={prefs.group} onChange={(event) => setPrefs((current) => ({ ...current, group: event.target.value as GroupMode }))}>
               <option value="group">{sheet?.groupLabel ?? 'Topic'}</option>
               <option value="difficulty">Difficulty</option>
             </select>

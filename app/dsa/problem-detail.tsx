@@ -155,7 +155,7 @@ export function ProblemDetail({ problem, progress, position, now, darkEditor, on
             <label className="sr-only" htmlFor={`${editorLabelId}-lang`}>
               Language
             </label>
-            <select id={`${editorLabelId}-lang`} className="dsa-select" value={progress.language} onChange={(event) => change({ language: event.target.value as Language, textNotes: progress.textNotes })}>
+            <select id={`${editorLabelId}-lang`} className="dsa-select-sm" value={progress.language} onChange={(event) => change({ language: event.target.value as Language, textNotes: progress.textNotes })}>
               {Object.entries(LANGUAGE_LABELS).map(([value, text]) => (
                 <option key={value} value={value}>
                   {text}

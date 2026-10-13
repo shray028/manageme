@@ -46,6 +46,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { PandaCompanion } from '@/components/panda-companion';
 import { BrandLogo } from '@/components/brand-logo';
+import { LandingPage } from '@/components/landing-page';
 import { auth, db, firebaseApp, googleProvider } from '@/lib/firebase';
 import { RoadmapView } from './roadmap-view';
 
@@ -1102,15 +1103,22 @@ export default function Home() {
     setAuthError('');
     try {
       await signInWithPopup(auth, googleProvider);
+      return true;
     } catch (error) {
       setAuthError(
         error instanceof Error
           ? error.message
           : 'Google sign-in did not complete.',
       );
+      return false;
     } finally {
       setAuthLoading(false);
     }
+  };
+  const signInToDsa = async () => {
+    if (!(await signIn())) return;
+    try { window.localStorage.setItem('manageme:start', 'dsa'); } catch { /* optional */ }
+    window.location.hash = '/dsa';
   };
   const signOutOfManageMe = async () => {
     await signOut(auth);
@@ -1122,109 +1130,7 @@ export default function Home() {
         Preparing your calm space…
       </main>
     );
-  if (!user)
-    return (
-      <main className="relative min-h-screen overflow-hidden bg-[#f4f8ff] text-[#0b2454]">
-        <div className="absolute -left-24 top-24 size-72 rounded-full bg-sky-100/80 blur-3xl" />
-        <div className="absolute -right-24 bottom-4 size-80 rounded-full bg-cyan-100/80 blur-3xl" />
-        <header className="relative z-10 mx-auto flex h-20 max-w-6xl items-center justify-between px-5">
-          <BrandLogo />
-          <Button
-            onClick={signIn}
-            disabled={authLoading}
-            className="bg-blue-700 hover:bg-blue-800"
-          >
-            <LogIn className="size-4" />
-            {authLoading ? 'Opening Google…' : 'Start with Google'}
-          </Button>
-        </header>
-        <section className="relative z-10 mx-auto grid max-w-6xl items-center gap-8 px-5 pb-20 pt-12 md:grid-cols-[1.05fr_.95fr] md:pt-24">
-          <div>
-            <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-bold tracking-wide text-blue-800">
-              YOUR CALMER WAY FORWARD
-            </p>
-            <h1 className="mt-5 max-w-xl font-display text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.045em] sm:text-5xl lg:text-[3.5rem]">
-              The missing link between today and your next goal.{' '}
-              <span className="inline-block text-[0.78em] align-[0.05em]">
-                😉
-              </span>
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-stone-600">
-              A personal space for small habits, realistic plans, focused work,
-              and projects that grow with you — without making your day feel
-              like a system to manage.
-            </p>
-            <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-2">
-              <a
-                href="#/dsa"
-                onClick={() => {
-                  try {
-                    window.localStorage.setItem('manageme:start', 'dsa');
-                  } catch {
-                    /* optional */
-                  }
-                }}
-                className="rounded-2xl border border-sky-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-400"
-              >
-                <span className="block text-base font-bold text-stone-900">Track DSA practice</span>
-                <span className="mt-1 block text-sm text-stone-600">
-                  Sheets like Striver&apos;s 180, done and revised checkboxes, code and notes per problem.
-                </span>
-              </a>
-              <button
-                type="button"
-                onClick={signIn}
-                disabled={authLoading}
-                className="flex flex-col items-start rounded-2xl border border-cyan-200 bg-white p-4 text-left shadow-sm transition hover:border-cyan-500"
-              >
-                <span className="block text-base font-bold text-stone-900">
-                  {authLoading ? 'Opening Google…' : 'Plan my days'}
-                </span>
-                <span className="mt-1 block text-sm text-stone-600">
-                  Tasks, a small habit, focus sessions and project boards.
-                </span>
-              </button>
-            </div>
-            <p className="mt-3 text-xs font-semibold text-stone-500">
-              Free to begin · Google sign-in keeps your data private
-            </p>
-          </div>
-          <div className="relative mx-auto w-full max-w-md rounded-[2.5rem] border border-white/80 bg-white/70 p-5 shadow-[0_24px_70px_rgba(23,105,216,.12)] backdrop-blur">
-            <div className="rounded-[2rem] bg-[#edf8ff] px-6 pb-4 pt-7">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-700">
-                Your gentle co-pilot
-              </p>
-              <p className="mt-2 font-display text-2xl font-semibold">
-                A little less noise. A lot more momentum.
-              </p>
-              <img
-                src="/panda/awake-small.png"
-                alt="Awake ManageMe Panda waving hello"
-                width={404}
-                height={420}
-                className="mx-auto mt-3 h-52 w-auto max-w-full object-contain drop-shadow-xl sm:h-56 lg:h-60"
-              />
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-bold text-stone-600">
-              <span className="rounded-xl bg-sky-50 px-2 py-3">
-                Habit rhythm
-              </span>
-              <span className="rounded-xl bg-blue-50 px-2 py-3">
-                Focus sessions
-              </span>
-              <span className="rounded-xl bg-cyan-50 px-2 py-3">
-                Projects board
-              </span>
-            </div>
-          </div>
-        </section>
-        {authError && (
-          <p className="relative z-10 mx-auto mb-8 max-w-2xl rounded-xl bg-rose-50 p-3 text-center text-xs text-rose-700">
-            {authError}
-          </p>
-        )}
-      </main>
-    );
+  if (!user) return <LandingPage onSignIn={() => void signInToDsa()} busy={authLoading} error={authError} />;
 
   const roadmapProject = projects.find((project) =>
     project.title.toLowerCase().includes('60-day roadmap'),

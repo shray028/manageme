@@ -18,6 +18,14 @@ the device until it can be saved — nothing is lost, but nothing reaches the ac
 
 ## How data is kept safe
 
+The DSA pages are presentation only. Releases must keep the Firebase project
+`manageme-11386`, Google sign-in UID, `users/{uid}/dsaLists/{listId}` and
+`users/{uid}/dsaProgress/{problemKey}` paths, and problem keys stable. The
+workspace document remains `users/{uid}`. Do not clear browser storage or
+replace the save engine during a visual redesign. If a future feature needs a
+new document format, read the existing format and migrate it without deleting
+old fields; add a test that loads a document written by the previous version.
+
 - Every edit is written to a per-tab backup in the browser *before* it is sent, and removed only
   after the server confirms that exact version. A crash, a closed tab or no network loses nothing;
   the next visit sends whatever was left.

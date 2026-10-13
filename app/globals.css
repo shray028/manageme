@@ -59,36 +59,18 @@ button {
 .brand-logo-wordmark {
   display: block;
   flex: none;
-  overflow: hidden;
-  background-image: url('/brand/manageme-logo.png');
-  background-repeat: no-repeat;
-  background-color: #fff;
+  width: auto;
+  user-select: none;
+  -webkit-user-drag: none;
 }
-.brand-logo-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background-size: 90px 90px;
-  background-position: -25px -16px;
-}
-.brand-logo-wordmark {
-  width: 156px;
-  height: 32px;
-  background-size: 193px 193px;
-  background-position: -19px -125px;
-}
-.brand-logo-compact .brand-logo-mark {
-  width: 34px;
-  height: 34px;
-  background-size: 76px 76px;
-  background-position: -21px -13px;
-}
-.brand-logo-compact .brand-logo-wordmark {
-  width: 139px;
-  height: 29px;
-  background-size: 171px 171px;
-  background-position: -17px -111px;
-}
+.brand-logo-mark { height: 38px; }
+.brand-logo-wordmark { height: 27px; }
+.brand-logo-compact { gap: 0.5rem; }
+.brand-logo-compact .brand-logo-mark { height: 32px; }
+.brand-logo-compact .brand-logo-wordmark { height: 23px; }
+.brand-logo-dark { display: none; }
+[data-theme='dark'] .brand-logo-light { display: none; }
+[data-theme='dark'] .brand-logo-dark { display: block; }
 .tag-indigo {
   background: #eef2ff;
   color: #4f46e5;

@@ -7,15 +7,16 @@ const state = vi.hoisted(() => ({
   doc: null as null | Record<string, unknown>,
   failLoad: false,
   writes: [] as Array<Record<string, unknown>>,
+  authUser: { uid: 'u1', displayName: 'Asha Rao', email: 'asha@example.com' } as null | { uid: string; displayName: string; email: string },
 }));
 
 vi.mock('@/lib/firebase', () => ({ auth: {}, db: {}, firebaseApp: {}, googleProvider: {} }));
 vi.mock('firebase/auth', () => ({
   onAuthStateChanged: (_auth: unknown, callback: (u: unknown) => void) => {
-    setTimeout(() => callback(user), 0);
+    setTimeout(() => callback(state.authUser), 0);
     return () => undefined;
   },
-  signInWithPopup: vi.fn(),
+  signInWithPopup: vi.fn().mockResolvedValue({ user: { uid: 'u1' } }),
   signOut: vi.fn(),
 }));
 vi.mock('firebase/storage', () => ({ getStorage: vi.fn(), ref: vi.fn(), uploadBytes: vi.fn(), getDownloadURL: vi.fn() }));
@@ -56,7 +57,9 @@ describe('workspace', () => {
     state.doc = null;
     state.failLoad = false;
     state.writes = [];
+    state.authUser = user;
     window.localStorage.clear();
+    window.location.hash = '';
   });
   afterEach(() => cleanup());
 
@@ -122,5 +125,17 @@ describe('workspace', () => {
     expect(screen.getByText(/Choose a week/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Back to workspace' }));
     expect(screen.getByText(/Continue your 60-day roadmap/)).toBeTruthy();
+  });
+
+  it('takes a new visitor to DSA after Google sign-in from the landing page', async () => {
+    state.authUser = null;
+    await renderHome();
+    expect(screen.getByRole('link', { name: 'Track DSA practice' })).toHaveProperty('hash', '#/dsa');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Continue with Google' }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(window.location.hash).toBe('#/dsa');
+    expect(window.localStorage.getItem('manageme:start')).toBe('dsa');
   });
 });

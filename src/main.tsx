@@ -2,6 +2,7 @@ import { Component, lazy, StrictMode, Suspense, useEffect, type ReactNode } from
 import { createRoot } from 'react-dom/client';
 import { navigate, useRoute } from '../app/router';
 import '../app/globals.css';
+import '../app/premium.css';
 
 const Workspace = lazy(() => import('../app/page'));
 const DsaApp = lazy(() => import('../app/dsa/dsa-app'));

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LogIn, LogOut } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, Cloud, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { signIn, signOut, useAppUser, type AppUser } from '@/lib/dsa/auth';
 import { toList } from '@/lib/dsa/model';
@@ -35,7 +35,7 @@ function Shell({ children, header, wide = false }: { children: React.ReactNode; 
         Skip to content
       </a>
       <header className="dsa-topbar">
-        <div className={`mx-auto flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6 ${wide ? '' : 'max-w-6xl'}`}>
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
           <a href="#/dsa" className="flex items-center gap-2.5 no-underline" aria-label="ManageMe DSA home">
             <BrandLogo compact />
             <span className="rounded-full bg-[var(--dsa-brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--dsa-brand-strong)]">DSA</span>
@@ -43,7 +43,7 @@ function Shell({ children, header, wide = false }: { children: React.ReactNode; 
           {header}
         </div>
       </header>
-      <main id="dsa-main" className={wide ? 'dsa-wide-main' : 'mx-auto max-w-6xl px-4 py-8 sm:px-6'}>
+      <main id="dsa-main" className={wide ? 'dsa-wide-main' : 'dsa-home-main'}>
         {children}
       </main>
     </div>
@@ -55,55 +55,33 @@ function SignedOut() {
   const [busy, setBusy] = useState(false);
   return (
     <Shell>
-      <div className="mx-auto max-w-2xl py-10">
-        <h1 className="dsa-h1">Track your DSA practice in one place</h1>
-        <p className="mt-4 text-lg">Pick a sheet like Striver’s 180 or LeetCode’s Top Interview Questions, or bring your own list. For every problem you get:</p>
-        <ul className="mt-4 list-disc space-y-2 pl-6 text-lg">
-          <li>
-            <strong>Done</strong> and <strong>Revised</strong> checkboxes, each with space for what you learned
-          </li>
-          <li>A code editor with syntax colours and auto-indent, which also works for plain notes</li>
-          <li>A weak list for problems you got wrong, with the mistake to remember</li>
-          <li>Reference links, like the video that explains it</li>
-        </ul>
-        <p className="mt-4 text-lg">Everything saves to your Google account as you type and works across devices.</p>
-        <button
-          type="button"
-          className="dsa-btn-primary mt-6 !px-5 !py-3 text-lg"
-          disabled={busy}
-          onClick={async () => {
+      <div className="dsa-welcome">
+        <div className="dsa-welcome-copy">
+          <p className="dsa-overline">A CLEARER WAY TO PRACTISE</p>
+          <h1 className="dsa-h1">Track your DSA practice in one place</h1>
+          <p className="dsa-welcome-lead">The next problem, your approach, and what to revise—all together. Choose a trusted sheet or bring your own list, then build a practice rhythm that lasts.</p>
+          <div className="dsa-welcome-points"><span><Check size={16} aria-hidden /> Solve and revise with intention</span><span><BookOpen size={16} aria-hidden /> Keep code, mistakes and links close</span><span><Cloud size={16} aria-hidden /> Return to your work across devices</span></div>
+          <button type="button" className="dsa-btn-primary dsa-welcome-cta" disabled={busy} onClick={async () => {
             setBusy(true);
             setError('');
-            try {
-              await signIn();
-            } catch (err) {
+            try { await signIn(); } catch (err) {
               const code = (err as { code?: string })?.code ?? '';
-              setError(
-                code === 'auth/popup-blocked'
-                  ? 'Your browser blocked the Google sign-in window. Allow pop-ups for this site, then try again.'
-                  : code === 'auth/popup-closed-by-user'
-                    ? 'The sign-in window was closed before finishing. Try again when ready.'
-                    : 'Google sign-in didn’t finish. Check your connection and try again.',
-              );
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <LogIn className="size-5" aria-hidden /> {busy ? 'Opening Google…' : 'Sign in with Google'}
-        </button>
-        {error && (
-          <p role="alert" className="mt-3 font-semibold text-[var(--dsa-danger)]">
-            {error}
-          </p>
-        )}
-        <p className="mt-10 text-[var(--dsa-muted)]">
-          Looking for habits, tasks and projects too?{' '}
-          <a className="dsa-link" href="#/" onClick={() => rememberStart('workspace')}>
-            Open the full ManageMe workspace
-          </a>
-          .
-        </p>
+              setError(code === 'auth/popup-blocked' ? 'Your browser blocked the Google sign-in window. Allow pop-ups for this site, then try again.' : code === 'auth/popup-closed-by-user' ? 'The sign-in window was closed before finishing. Try again when ready.' : 'Google sign-in didn’t finish. Check your connection and try again.');
+            } finally { setBusy(false); }
+          }}><LogIn className="size-4" aria-hidden /> {busy ? 'Opening Google…' : 'Sign in with Google'} <ArrowRight className="size-4" aria-hidden /></button>
+          {error && <p role="alert" className="mt-3 font-semibold text-[var(--dsa-danger)]">{error}</p>}
+          <p className="dsa-welcome-privacy"><ShieldCheck size={17} aria-hidden /> Your lists and notes are private to your sign-in.</p>
+          <p className="dsa-welcome-workspace">Need tasks, habits and projects too? <a className="dsa-link" href="#/" onClick={() => rememberStart('workspace')}>Explore the full workspace</a>.</p>
+        </div>
+        <div className="dsa-welcome-preview" aria-label="Illustration of a DSA practice list">
+          <div className="dsa-welcome-preview-head"><p className="dsa-overline">YOUR PRACTICE DESK</p><span>01 / 03</span></div>
+          <h2>Make the next problem count.</h2>
+          <p>A place for the attempt and the lesson.</p>
+          <div className="dsa-welcome-sample"><span className="dsa-sample-radio is-done"><Check size={13} strokeWidth={3} aria-hidden /></span><span><strong>Two Sum</strong><small>Approach saved · ready to revise</small></span><span className="dsa-tag dsa-tag-easy">Easy</span></div>
+          <div className="dsa-welcome-sample"><span className="dsa-sample-radio" /><span><strong>Valid Anagram</strong><small>Your next clear step</small></span><span className="dsa-tag dsa-tag-easy">Easy</span></div>
+          <div className="dsa-welcome-sample"><span className="dsa-sample-radio" /><span><strong>Contains Duplicate</strong><small>Code and notes stay together</small></span><span className="dsa-tag dsa-tag-easy">Easy</span></div>
+          <p className="dsa-welcome-preview-foot">Illustrative preview</p>
+        </div>
       </div>
     </Shell>
   );

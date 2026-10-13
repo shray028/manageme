@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Download, Upload } from 'lucide-react';
+import { ArrowRight, BookOpen, Cloud, Download, LayoutGrid, Link2, ShieldCheck, Upload } from 'lucide-react';
 import { SHEETS, getSheet } from '@/lib/dsa/sheets';
 import { listProblems, newId, toProgress } from '@/lib/dsa/model';
 import { importFromUrl, problemsFromText } from '@/lib/dsa/client-import';
@@ -34,86 +34,102 @@ export function DsaHome({ store, lists, archived, userName, userEmail, onOpen }:
     if (sheet) onOpen(createList(sheet.title, { kind: 'sheet', sheetId }));
   };
 
+  const seenProblems = new Set<string>();
+  let done = 0;
+  for (const list of lists) {
+    for (const problem of listProblems(list)) {
+      if (seenProblems.has(problem.key)) continue;
+      seenProblems.add(problem.key);
+      if (toProgress(problem.key, store.get('dsaProgress', problem.key)).completed) done += 1;
+    }
+  }
+  const practiceStats = { problems: seenProblems.size, done };
+  const firstName = userName.trim().split(/\s+/)[0];
+  const firstList = lists[0];
+
   return (
-    <div className="space-y-10">
-      <header>
-        <h1 className="dsa-h1">{userName ? `Hi ${userName}, what are you practising?` : 'What are you practising?'}</h1>
-        <p className="mt-2 max-w-2xl text-lg text-[var(--dsa-muted)]">Tick problems off as you solve and revise them, and keep your code, mistakes and video links next to each one.</p>
-      </header>
+    <div className="dsa-dashboard">
+      <nav className="dsa-dashboard-nav" aria-label="DSA sections">
+        <p className="dsa-overline">NAVIGATE</p>
+        <a className="is-current" href="#dsa-main"><LayoutGrid size={17} aria-hidden /> Overview</a>
+        <a href="#my-lists"><BookOpen size={17} aria-hidden /> Your lists</a>
+        <a href="#sheets"><LayoutGrid size={17} aria-hidden /> Practice sheets</a>
+        <a href="#import"><Link2 size={17} aria-hidden /> Import a list</a>
+        <div className="dsa-dashboard-nav-note"><ShieldCheck size={18} aria-hidden /><span>Your progress stays with your account.</span></div>
+      </nav>
 
-      {lists.length > 0 && (
-        <section aria-labelledby="my-lists">
-          <h2 id="my-lists" className="dsa-h2 mb-3">
-            Your lists
-          </h2>
-          <ul className="grid gap-3 md:grid-cols-2">
-            {lists.map((list) => (
-              <ListCard key={list.id} list={list} store={store} onOpen={() => onOpen(list.id)} />
-            ))}
+      <div className="dsa-dashboard-content">
+        <header className="dsa-dashboard-intro">
+          <p className="dsa-overline">YOUR PRACTICE SPACE</p>
+          <h1 className="dsa-h1">{firstName ? `Hi ${firstName}, what are you practising?` : 'What are you practising?'}</h1>
+          <p>Pick up a sheet, solve one problem, and keep what you learned close for next time.</p>
+        </header>
+
+        <div className="dsa-next-card">
+          <span className="dsa-next-icon"><BookOpen size={19} aria-hidden /></span>
+          <div><strong>{firstList ? `Pick up ${firstList.title}` : 'Start with one problem'}</strong><p>{firstList ? 'Your code, notes and revision history are ready where you left them.' : 'Choose a practice sheet below to begin at your own pace.'}</p></div>
+          <button type="button" className="dsa-next-action" onClick={() => firstList ? onOpen(firstList.id) : document.getElementById('sheets')?.scrollIntoView({ behavior: 'smooth' })}>
+            {firstList ? 'Continue practice' : 'Explore sheets'} <ArrowRight size={17} aria-hidden />
+          </button>
+        </div>
+
+        {lists.length > 0 && (
+          <section id="my-lists" aria-labelledby="my-lists-title" className="dsa-dashboard-section">
+            <div className="dsa-section-heading"><div><p className="dsa-overline">PICK UP WHERE YOU ARE</p><h2 id="my-lists-title" className="dsa-h2">Your lists</h2></div><span>{lists.length} {lists.length === 1 ? 'list' : 'lists'}</span></div>
+            <ul className="dsa-my-lists">
+              {lists.map((list) => <ListCard key={list.id} list={list} store={store} onOpen={() => onOpen(list.id)} />)}
+            </ul>
+          </section>
+        )}
+
+        <section id="sheets" aria-labelledby="sheets-title" className="dsa-dashboard-section">
+          <div className="dsa-section-heading"><div><p className="dsa-overline">A CLEAR PLACE TO BEGIN</p><h2 id="sheets-title" className="dsa-h2">{lists.length ? 'Explore another sheet' : 'Start with a sheet'}</h2></div></div>
+          <p className="dsa-section-description">Every problem links to its question. Add your own problems whenever you need to.</p>
+          <ul className="dsa-sheet-grid">
+            {SHEETS.map((sheet) => {
+              const started = lists.some((list) => list.source.kind === 'sheet' && list.source.sheetId === sheet.id);
+              const groups = new Set(sheet.problems.map((problem) => problem.group)).size;
+              return (
+                <li key={sheet.id} className="dsa-panel dsa-sheet-card">
+                  <div className="dsa-sheet-card-icon"><BookOpen size={19} aria-hidden /></div>
+                  <div><h3 className="dsa-h3">{sheet.title}</h3><p>{sheet.description}</p></div>
+                  <p className="dsa-sheet-meta">{sheet.problems.length} problems · {groups} {sheet.groupLabel.toLowerCase()} groups{sheet.subgroupLabel ? ` · ${sheet.subgroupLabel.toLowerCase()}s` : ''}</p>
+                  <div className="dsa-sheet-actions"><button type="button" className="dsa-btn-primary" onClick={() => startSheet(sheet.id)}>{started ? 'Open' : 'Start this sheet'} <ArrowRight size={16} aria-hidden /></button><a className="dsa-link" href={sheet.sourceUrl} target="_blank" rel="noreferrer noopener">View original</a></div>
+                </li>
+              );
+            })}
           </ul>
         </section>
-      )}
 
-      <section aria-labelledby="sheets">
-        <h2 id="sheets" className="dsa-h2">
-          {lists.length ? 'Start another sheet' : 'Start with a sheet'}
-        </h2>
-        <p className="mb-3 text-[var(--dsa-muted)]">Every problem links straight to the question. You can add your own problems to any sheet later.</p>
-        <ul className="grid gap-3 md:grid-cols-2">
-          {SHEETS.map((sheet) => {
-            const started = lists.some((list) => list.source.kind === 'sheet' && list.source.sheetId === sheet.id);
-            const groups = new Set(sheet.problems.map((problem) => problem.group)).size;
-            return (
-              <li key={sheet.id} className="dsa-panel flex flex-col gap-3">
-                <div>
-                  <h3 className="dsa-h3">{sheet.title}</h3>
-                  <p className="mt-1">{sheet.description}</p>
-                  <p className="mt-1 text-sm text-[var(--dsa-muted)]">
-                    {sheet.problems.length} problems in {groups} {sheet.groupLabel.toLowerCase()} groups
-                    {sheet.subgroupLabel ? `, each split by ${sheet.subgroupLabel.toLowerCase()}` : ''}.
-                  </p>
-                </div>
-                <div className="mt-auto flex flex-wrap items-center gap-3">
-                  <button type="button" className="dsa-btn-primary" onClick={() => startSheet(sheet.id)}>
-                    {started ? 'Open' : 'Start this sheet'}
-                  </button>
-                  <a className="dsa-link text-sm" href={sheet.sourceUrl} target="_blank" rel="noreferrer noopener">
-                    View original
-                  </a>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+        <div id="import" className="dsa-dashboard-section">
+          <ImportSection
+            onSheet={startSheet}
+            onList={(title, url, problems) => onOpen(createList(title, { kind: 'leetcode', url }, problems))}
+            onPasted={(title, problems) => onOpen(createList(title, { kind: 'custom' }, problems))}
+            onEmpty={(title) => onOpen(createList(title, { kind: 'custom' }))}
+          />
+        </div>
 
-      <ImportSection
-        onSheet={startSheet}
-        onList={(title, url, problems) => onOpen(createList(title, { kind: 'leetcode', url }, problems))}
-        onPasted={(title, problems) => onOpen(createList(title, { kind: 'custom' }, problems))}
-        onEmpty={(title) => onOpen(createList(title, { kind: 'custom' }))}
-      />
+        {archived.length > 0 && (
+          <section aria-labelledby="archived" className="dsa-dashboard-section">
+            <h2 id="archived" className="dsa-h2 mb-2">Removed lists</h2>
+            <p className="mb-3 text-[var(--dsa-muted)]">Removing a list never deletes your notes. Bring a list back any time.</p>
+            <ul className="space-y-2">
+              {archived.map((list) => (
+                <li key={list.id} className="dsa-panel flex flex-wrap items-center justify-between gap-3 !py-3"><span>{list.title}</span><button type="button" className="dsa-btn-secondary" onClick={() => store.update('dsaLists', list.id, { archived: false })}>Bring back</button></li>
+              ))}
+            </ul>
+          </section>
+        )}
 
-      {archived.length > 0 && (
-        <section aria-labelledby="archived">
-          <h2 id="archived" className="dsa-h2 mb-2">
-            Removed lists
-          </h2>
-          <p className="mb-3 text-[var(--dsa-muted)]">Removing a list never deletes your notes. Bring a list back any time.</p>
-          <ul className="space-y-2">
-            {archived.map((list) => (
-              <li key={list.id} className="dsa-panel flex flex-wrap items-center justify-between gap-3 !py-3">
-                <span>{list.title}</span>
-                <button type="button" className="dsa-btn-secondary" onClick={() => store.update('dsaLists', list.id, { archived: false })}>
-                  Bring back
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+        <div className="dsa-dashboard-section"><BackupSection store={store} email={userEmail} /></div>
+      </div>
 
-      <BackupSection store={store} email={userEmail} />
+      <aside className="dsa-dashboard-rail" aria-label="Practice summary">
+        <p className="dsa-overline">YOUR PROGRESS</p>
+        <div className="dsa-rail-card"><p className="dsa-rail-card-label">Problems done</p><strong>{practiceStats.done}<span> / {practiceStats.problems}</span></strong><div className="dsa-progress" role="progressbar" aria-label="Overall problem progress" aria-valuemin={0} aria-valuemax={practiceStats.problems} aria-valuenow={practiceStats.done}><span style={{ width: `${practiceStats.problems ? Math.round(practiceStats.done / practiceStats.problems * 100) : 0}%` }} /></div><p>Every problem you return to adds up.</p></div>
+        <div className="dsa-rail-tip"><Cloud size={20} aria-hidden /><div><strong>Saved as you go</strong><p>Your lists and notes sync to your account. You can also download a backup below.</p></div></div>
+      </aside>
     </div>
   );
 }
@@ -124,29 +140,13 @@ function ListCard({ list, store, onOpen }: { list: DsaList; store: DsaStore; onO
   for (const problem of problems) if (toProgress(problem.key, store.get('dsaProgress', problem.key)).completed) done += 1;
   const percent = problems.length ? Math.round((done / problems.length) * 100) : 0;
   return (
-    <li className="dsa-panel flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="dsa-h3">{list.title}</h3>
-        <button
-          type="button"
-          className="dsa-text-btn shrink-0"
-          onClick={() => {
-            if (window.confirm(`Remove “${list.title}” from your lists?\n\nYour notes and progress are kept, and you can bring the list back from “Removed lists”.`))
-              store.update('dsaLists', list.id, { archived: true });
-          }}
-        >
-          Remove
-        </button>
-      </div>
-      <p>
-        {done} of {problems.length} done
-      </p>
-      <div className="dsa-progress" role="progressbar" aria-label={`${list.title} progress`} aria-valuemin={0} aria-valuemax={problems.length} aria-valuenow={done}>
-        <div style={{ width: `${percent}%` }} />
-      </div>
-      <button type="button" className="dsa-btn-primary self-start" onClick={onOpen}>
-        Open list
-      </button>
+    <li className="dsa-panel dsa-list-card">
+      <span className="dsa-list-card-mark" aria-hidden><BookOpen size={20} /></span>
+      <div className="dsa-list-card-body"><h3 className="dsa-h3">{list.title}</h3><p>{done} of {problems.length} done</p><div className="dsa-progress" role="progressbar" aria-label={`${list.title} progress`} aria-valuemin={0} aria-valuemax={problems.length} aria-valuenow={done}><div style={{ width: `${percent}%` }} /></div></div>
+      <button type="button" className="dsa-list-card-open" onClick={onOpen}>Open list <ArrowRight size={17} aria-hidden /></button>
+      <button type="button" className="dsa-list-card-remove" onClick={() => {
+        if (window.confirm(`Remove “${list.title}” from your lists?\n\nYour notes and progress are kept, and you can bring the list back from “Removed lists”.`)) store.update('dsaLists', list.id, { archived: true });
+      }}>Remove</button>
     </li>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Check, Cloud, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, Cloud, LogIn, LogOut, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
+import { useSiteTheme, type SiteTheme } from '@/lib/site-theme';
 import { signIn, signOut, useAppUser, type AppUser } from '@/lib/dsa/auth';
 import { toList } from '@/lib/dsa/model';
 import type { DsaList } from '@/lib/dsa/types';
@@ -12,25 +13,26 @@ import { navigate, useRoute } from '../router';
 
 export default function DsaApp() {
   const user = useAppUser();
+  const [theme, toggleTheme] = useSiteTheme();
   useEffect(() => {
     document.title = 'DSA practice · ManageMe';
   }, []);
 
   if (user === undefined)
     return (
-      <Shell>
+      <Shell theme={theme} onToggleTheme={toggleTheme}>
         <p role="status" className="py-24 text-center text-lg">
           Checking your sign-in…
         </p>
       </Shell>
     );
-  if (!user) return <SignedOut />;
-  return <SignedIn key={user.uid} user={user} />;
+  if (!user) return <SignedOut theme={theme} onToggleTheme={toggleTheme} />;
+  return <SignedIn key={user.uid} user={user} theme={theme} onToggleTheme={toggleTheme} />;
 }
 
-function Shell({ children, header, wide = false }: { children: React.ReactNode; header?: React.ReactNode; wide?: boolean }) {
+function Shell({ children, header, wide = false, theme, onToggleTheme }: { children: React.ReactNode; header?: React.ReactNode; wide?: boolean; theme: SiteTheme; onToggleTheme: () => void }) {
   return (
-    <div className={`dsa-root ${wide ? 'is-wide' : ''}`}>
+    <div className={`dsa-root ${wide ? 'is-wide' : ''}`} data-theme={theme}>
       <a href="#dsa-main" className="dsa-skip">
         Skip to content
       </a>
@@ -40,7 +42,13 @@ function Shell({ children, header, wide = false }: { children: React.ReactNode; 
             <BrandLogo compact />
             <span className="rounded-full bg-[var(--dsa-brand-soft)] px-2 py-0.5 text-xs font-bold text-[var(--dsa-brand-strong)]">DSA</span>
           </a>
-          {header}
+          <div className="dsa-header-actions">
+            {header}
+            <button type="button" className="dsa-theme-toggle" onClick={onToggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
+              {theme === 'dark' ? <Sun size={17} aria-hidden /> : <Moon size={17} aria-hidden />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'} theme</span>
+            </button>
+          </div>
         </div>
       </header>
       <main id="dsa-main" className={wide ? 'dsa-wide-main' : 'dsa-home-main'}>
@@ -50,16 +58,16 @@ function Shell({ children, header, wide = false }: { children: React.ReactNode; 
   );
 }
 
-function SignedOut() {
+function SignedOut({ theme, onToggleTheme }: { theme: SiteTheme; onToggleTheme: () => void }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   return (
-    <Shell>
+    <Shell theme={theme} onToggleTheme={onToggleTheme}>
       <div className="dsa-welcome">
         <div className="dsa-welcome-copy">
           <p className="dsa-overline">A CLEARER WAY TO PRACTISE</p>
           <h1 className="dsa-h1">Track your DSA practice in one place</h1>
-          <p className="dsa-welcome-lead">The next problem, your approach, and what to revise—all together. Choose a trusted sheet or bring your own list, then build a practice rhythm that lasts.</p>
+          <p className="dsa-welcome-lead">The next problem, your approach, and what to revise—all together. Choose a trusted sheet and build a practice rhythm that lasts.</p>
           <div className="dsa-welcome-points"><span><Check size={16} aria-hidden /> Solve and revise with intention</span><span><BookOpen size={16} aria-hidden /> Keep code, mistakes and links close</span><span><Cloud size={16} aria-hidden /> Return to your work across devices</span></div>
           <button type="button" className="dsa-btn-primary dsa-welcome-cta" disabled={busy} onClick={async () => {
             setBusy(true);
@@ -71,7 +79,6 @@ function SignedOut() {
           }}><LogIn className="size-4" aria-hidden /> {busy ? 'Opening Google…' : 'Sign in with Google'} <ArrowRight className="size-4" aria-hidden /></button>
           {error && <p role="alert" className="mt-3 font-semibold text-[var(--dsa-danger)]">{error}</p>}
           <p className="dsa-welcome-privacy"><ShieldCheck size={17} aria-hidden /> Your lists and notes are private to your sign-in.</p>
-          <p className="dsa-welcome-workspace">Need tasks, habits and projects too? <a className="dsa-link" href="#/" onClick={() => rememberStart('workspace')}>Explore the full workspace</a>.</p>
         </div>
         <div className="dsa-welcome-preview" aria-label="Illustration of a DSA practice list">
           <div className="dsa-welcome-preview-head"><p className="dsa-overline">YOUR PRACTICE DESK</p><span>01 / 03</span></div>
@@ -118,7 +125,7 @@ function useDarkEditor(): [boolean, () => void] {
   ];
 }
 
-function SignedIn({ user }: { user: AppUser }) {
+function SignedIn({ user, theme, onToggleTheme }: { user: AppUser; theme: SiteTheme; onToggleTheme: () => void }) {
   const store = useDsaStore(user);
   const route = useRoute();
   const [darkEditor, toggleDark] = useDarkEditor();
@@ -148,9 +155,6 @@ function SignedIn({ user }: { user: AppUser }) {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-5">
       {store.ready && <SaveStatus status={store.status} onRetry={store.retry} />}
 
-      <a className="dsa-text-btn inline-flex items-center" href="#/" aria-label="Full workspace" onClick={() => rememberStart('workspace')}>
-        <span className="sm:hidden">Workspace</span><span className="hidden sm:inline">Full workspace</span>
-      </a>
       <button
         type="button"
         className="dsa-text-btn inline-flex items-center gap-1.5"
@@ -167,7 +171,7 @@ function SignedIn({ user }: { user: AppUser }) {
 
   if (store.loadError)
     return (
-      <Shell header={header}>
+      <Shell header={header} theme={theme} onToggleTheme={onToggleTheme}>
         <div className="dsa-panel mx-auto max-w-xl text-center" role="alert">
           <h1 className="dsa-h2">Couldn’t open your DSA data</h1>
           <p className="mt-2">{store.loadError}</p>
@@ -180,7 +184,7 @@ function SignedIn({ user }: { user: AppUser }) {
 
   if (!store.ready)
     return (
-      <Shell header={header}>
+      <Shell header={header} theme={theme} onToggleTheme={onToggleTheme}>
         <p role="status" className="py-24 text-center text-lg">
           Loading your lists…
         </p>
@@ -188,7 +192,7 @@ function SignedIn({ user }: { user: AppUser }) {
     );
 
   return (
-    <Shell header={header} wide={Boolean(listId && activeList)}>
+    <Shell header={header} wide={Boolean(listId && activeList)} theme={theme} onToggleTheme={onToggleTheme}>
       {listId && activeList ? (
         <ListView
           key={activeList.id}
@@ -204,7 +208,7 @@ function SignedIn({ user }: { user: AppUser }) {
         <div className="dsa-panel">
           <p className="font-semibold">That list doesn’t exist in your account.</p>
           <button type="button" className="dsa-btn-primary mt-3" onClick={() => navigate('/dsa')}>
-            Back to your lists
+            Back to practice
           </button>
         </div>
       ) : (
